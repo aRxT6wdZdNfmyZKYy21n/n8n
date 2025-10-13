@@ -273,15 +273,16 @@ function digestAuthAxiosConfig(
 	if (authDetails) {
 		const nonceCount = '000000001';
 		const cnonce = crypto.randomBytes(24).toString('hex');
-		const realm: string = authDetails
-			.find((el: any) => el[0].toLowerCase().indexOf('realm') > -1)[1]
-			.replace(/"/g, '');
+		
+		// Use the already validated realmKV and nonceKV
+		const realm: string = realmKV![1].replace(/"/g, '');
+		
 		// If authDetails does not have opaque, we should not add it to authorization.
 		const opaqueKV = authDetails.find((el: any) => el[0].toLowerCase().indexOf('opaque') > -1);
-		const opaque: string = opaqueKV ? opaqueKV[1].replace(/"/g, '') : undefined;
-		const nonce: string = authDetails
-			.find((el: any) => el[0].toLowerCase().indexOf('nonce') > -1)[1]
-			.replace(/"/g, '');
+		const opaque: string | undefined = opaqueKV ? opaqueKV[1].replace(/"/g, '') : undefined;
+		
+		// Use the already validated nonceKV
+		const nonce: string = nonceKV![1].replace(/"/g, '');
 		const ha1 = crypto
 			.createHash('md5')
 			.update(`${auth?.username as string}:${realm}:${auth?.password as string}`)
