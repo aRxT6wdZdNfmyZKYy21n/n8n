@@ -146,6 +146,12 @@ function setAxiosAgents(
 }
 
 axios.interceptors.request.use((config) => {
+	console.log('[DEBUG] Axios request interceptor called');
+	console.log('[DEBUG] config.url:', config.url);
+	console.log('[DEBUG] config.baseURL:', config.baseURL);
+	console.log('[DEBUG] config.httpsAgent:', !!config.httpsAgent);
+	console.log('[DEBUG] config.httpAgent:', !!config.httpAgent);
+
 	// If no content-type is set by us, prevent axios from force-setting the content-type to `application/x-www-form-urlencoded`
 	if (config.data === undefined) {
 		config.headers.setContentType(false, false);
@@ -218,9 +224,52 @@ function digestAuthAxiosConfig(
 	response: AxiosResponse,
 	auth: AxiosRequestConfig['auth'],
 ): AxiosRequestConfig {
-	const authDetails = response.headers['www-authenticate']
+	console.log('[DEBUG] digestAuthAxiosConfig called');
+	console.log('[DEBUG] response.status:', response.status);
+	console.log('[DEBUG] response.headers:', JSON.stringify(response.headers, null, 2));
+
+	const wwwAuthenticate = response.headers['www-authenticate'];
+	console.log('[DEBUG] www-authenticate header:', wwwAuthenticate);
+	console.log('[DEBUG] www-authenticate type:', typeof wwwAuthenticate);
+
+	if (!wwwAuthenticate) {
+		console.error('[ERROR] www-authenticate header is missing or undefined');
+		throw new Error('www-authenticate header is missing');
+	}
+
+	if (typeof wwwAuthenticate !== 'string') {
+		console.error('[ERROR] www-authenticate header is not a string:', typeof wwwAuthenticate);
+		throw new Error(`www-authenticate header is not a string, got: ${typeof wwwAuthenticate}`);
+	}
+
+	console.log('[DEBUG] Processing www-authenticate:', wwwAuthenticate);
+	const authDetails = wwwAuthenticate
 		.split(',')
 		.map((v: string) => v.split('='));
+	console.log('[DEBUG] Parsed authDetails:', authDetails);
+
+	if (!authDetails || authDetails.length === 0) {
+		console.error('[ERROR] authDetails is empty or invalid');
+		throw new Error('Failed to parse www-authenticate header');
+	}
+
+	// Validate that all required fields are present
+	const realmKV = authDetails.find((el: any) => el[0].toLowerCase().indexOf('realm') > -1);
+	const nonceKV = authDetails.find((el: any) => el[0].toLowerCase().indexOf('nonce') > -1);
+
+	if (!realmKV || !realmKV[1]) {
+		console.error('[ERROR] realm not found in www-authenticate header');
+		throw new Error('realm not found in www-authenticate header');
+	}
+
+	if (!nonceKV || !nonceKV[1]) {
+		console.error('[ERROR] nonce not found in www-authenticate header');
+		throw new Error('nonce not found in www-authenticate header');
+	}
+
+	console.log('[DEBUG] realm found:', realmKV[1]);
+	console.log('[DEBUG] nonce found:', nonceKV[1]);
+
 	if (authDetails) {
 		const nonceCount = '000000001';
 		const cnonce = crypto.randomBytes(24).toString('hex');
@@ -268,18 +317,38 @@ export async function invokeAxios(
 	axiosConfig: AxiosRequestConfig,
 	authOptions: IRequestOptions['auth'] = {},
 ) {
+	console.log('[DEBUG] invokeAxios called');
+	console.log('[DEBUG] axiosConfig.url:', axiosConfig.url);
+	console.log('[DEBUG] authOptions:', authOptions);
+
 	try {
+		console.log('[DEBUG] Making initial axios request');
 		return await axios(axiosConfig);
 	} catch (error) {
-		if (authOptions.sendImmediately !== false || !(error instanceof axios.AxiosError)) throw error;
-		// for digest-auth
-		const { response } = error;
-		if (response?.status !== 401 || !response.headers['www-authenticate']?.includes('nonce')) {
+		console.log('[DEBUG] Initial request failed, checking for digest auth retry');
+		console.log('[DEBUG] Error type:', error instanceof axios.AxiosError);
+		console.log('[DEBUG] Error details:', error);
+
+		if (authOptions.sendImmediately !== false || !(error instanceof axios.AxiosError)) {
+			console.log('[DEBUG] Not retrying - sendImmediately:', authOptions.sendImmediately, 'isAxiosError:', error instanceof axios.AxiosError);
 			throw error;
 		}
+
+		// for digest-auth
+		const { response } = error;
+		console.log('[DEBUG] Response status:', response?.status);
+		console.log('[DEBUG] www-authenticate header:', response?.headers?.['www-authenticate']);
+
+		if (response?.status !== 401 || !response.headers['www-authenticate']?.includes('nonce')) {
+			console.log('[DEBUG] Not a digest auth case - status:', response?.status, 'has nonce:', response?.headers?.['www-authenticate']?.includes('nonce'));
+			throw error;
+		}
+
+		console.log('[DEBUG] Attempting digest auth retry');
 		const { auth } = axiosConfig;
 		delete axiosConfig.auth;
 		axiosConfig = digestAuthAxiosConfig(axiosConfig, response, auth);
+		console.log('[DEBUG] Making retry request with digest auth');
 		return await axios(axiosConfig);
 	}
 }
@@ -878,11 +947,18 @@ export function applyPaginationRequestData(
 }
 
 function createOAuth2Client(credentials: OAuth2CredentialData): ClientOAuth2 {
+	console.log('[DEBUG] createOAuth2Client called');
+	console.log('[DEBUG] credentials.scope:', credentials.scope);
+	console.log('[DEBUG] credentials.scope type:', typeof credentials.scope);
+
+	const scopes = credentials.scope ? credentials.scope.split(' ') : [];
+	console.log('[DEBUG] processed scopes:', scopes);
+
 	return new ClientOAuth2({
 		clientId: credentials.clientId,
 		clientSecret: credentials.clientSecret,
 		accessTokenUri: credentials.accessTokenUrl,
-		scopes: (credentials.scope as string).split(' '),
+		scopes,
 		ignoreSSLIssues: credentials.ignoreSSLIssues,
 		authentication: credentials.authentication ?? 'header',
 		...(credentials.additionalBodyProperties && {
@@ -964,9 +1040,25 @@ export async function requestOAuth2(
 	// on the token-type used.
 	const newRequestOptions = token.sign(requestOptions as ClientOAuth2RequestObject);
 	const newRequestHeaders = (newRequestOptions.headers = newRequestOptions.headers ?? {});
+
+	console.log('[DEBUG] OAuth2 token signed, headers:', newRequestHeaders);
+	console.log('[DEBUG] Authorization header:', newRequestHeaders.Authorization);
+	console.log('[DEBUG] keepBearer option:', oAuth2Options?.keepBearer);
+
 	// If keep bearer is false remove the it from the authorization header
 	if (oAuth2Options?.keepBearer === false && typeof newRequestHeaders.Authorization === 'string') {
-		newRequestHeaders.Authorization = newRequestHeaders.Authorization.split(' ')[1];
+		console.log('[DEBUG] Removing Bearer prefix from Authorization header');
+		console.log('[DEBUG] Authorization before split:', newRequestHeaders.Authorization);
+
+		const authParts = newRequestHeaders.Authorization.split(' ');
+		console.log('[DEBUG] Authorization parts:', authParts);
+
+		if (authParts.length >= 2) {
+			newRequestHeaders.Authorization = authParts[1];
+			console.log('[DEBUG] Authorization after split:', newRequestHeaders.Authorization);
+		} else {
+			console.warn('[WARNING] Authorization header does not have expected format (Bearer token)');
+		}
 	}
 	if (oAuth2Options?.keyToIncludeInAccessTokenHeader) {
 		Object.assign(newRequestHeaders, {
