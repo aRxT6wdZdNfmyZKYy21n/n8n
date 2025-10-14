@@ -135,7 +135,7 @@ function getTargetUrlFromAxiosConfig(axiosConfig: AxiosRequestConfig): string {
 	console.log('[DEBUG] getTargetUrlFromAxiosConfig called');
 	console.log('[DEBUG] axiosConfig.url:', axiosConfig.url);
 	console.log('[DEBUG] axiosConfig.baseURL:', axiosConfig.baseURL);
-	
+
 	const { url, baseURL } = axiosConfig;
 
 	try {
@@ -164,12 +164,12 @@ export function getAgentWithProxy({
 	console.log('[DEBUG] targetUrl:', targetUrl);
 	console.log('[DEBUG] proxyConfig:', proxyConfig);
 	console.log('[DEBUG] agentOptions:', agentOptions);
-	
+
 	// If no proxy is set in config, use HTTP_PROXY/HTTPS_PROXY/ALL_PROXY from env depending on target URL
 	// Also respect NO_PROXY to disable the proxy for certain hosts
 	const proxyUrl = getUrlFromProxyConfig(proxyConfig) ?? proxyFromEnv.getProxyForUrl(targetUrl);
 	console.log('[DEBUG] resolved proxyUrl:', proxyUrl);
-	
+
 	const protocol = targetUrl.startsWith('https://') ? 'https' : 'http';
 	console.log('[DEBUG] protocol:', protocol);
 
@@ -203,7 +203,7 @@ axios.interceptors.request.use((config) => {
 	console.log('[DEBUG] config.baseURL:', config.baseURL);
 	console.log('[DEBUG] config.httpsAgent:', !!config.httpsAgent);
 	console.log('[DEBUG] config.httpAgent:', !!config.httpAgent);
-	
+
 	// If no content-type is set by us, prevent axios from force-setting the content-type to `application/x-www-form-urlencoded`
 	if (config.data === undefined) {
 		config.headers.setContentType(false, false);
@@ -288,60 +288,60 @@ function digestAuthAxiosConfig(
 	console.log('[DEBUG] digestAuthAxiosConfig called');
 	console.log('[DEBUG] response.status:', response.status);
 	console.log('[DEBUG] response.headers:', JSON.stringify(response.headers, null, 2));
-	
+
 	const wwwAuthenticate = response.headers['www-authenticate'];
 	console.log('[DEBUG] www-authenticate header:', wwwAuthenticate);
 	console.log('[DEBUG] www-authenticate type:', typeof wwwAuthenticate);
-	
+
 	if (!wwwAuthenticate) {
 		console.error('[ERROR] www-authenticate header is missing or undefined');
 		throw new Error('www-authenticate header is missing');
 	}
-	
+
 	if (typeof wwwAuthenticate !== 'string') {
 		console.error('[ERROR] www-authenticate header is not a string:', typeof wwwAuthenticate);
 		throw new Error(`www-authenticate header is not a string, got: ${typeof wwwAuthenticate}`);
 	}
-	
+
 	console.log('[DEBUG] Processing www-authenticate:', wwwAuthenticate);
 	const authDetails = wwwAuthenticate
 		.split(',')
 		.map((v: string) => v.split('='));
 	console.log('[DEBUG] Parsed authDetails:', authDetails);
-	
+
 	if (!authDetails || authDetails.length === 0) {
 		console.error('[ERROR] authDetails is empty or invalid');
 		throw new Error('Failed to parse www-authenticate header');
 	}
-	
+
 	// Validate that all required fields are present
 	const realmKV = authDetails.find((el: any) => el[0].toLowerCase().indexOf('realm') > -1);
 	const nonceKV = authDetails.find((el: any) => el[0].toLowerCase().indexOf('nonce') > -1);
-	
+
 	if (!realmKV || !realmKV[1]) {
 		console.error('[ERROR] realm not found in www-authenticate header');
 		throw new Error('realm not found in www-authenticate header');
 	}
-	
+
 	if (!nonceKV || !nonceKV[1]) {
 		console.error('[ERROR] nonce not found in www-authenticate header');
 		throw new Error('nonce not found in www-authenticate header');
 	}
-	
+
 	console.log('[DEBUG] realm found:', realmKV[1]);
 	console.log('[DEBUG] nonce found:', nonceKV[1]);
-	
+
 	if (authDetails) {
 		const nonceCount = '000000001';
 		const cnonce = crypto.randomBytes(24).toString('hex');
-		
+
 		// Use the already validated realmKV and nonceKV
 		const realm: string = realmKV![1].replace(/"/g, '');
-		
+
 		// If authDetails does not have opaque, we should not add it to authorization.
 		const opaqueKV = authDetails.find((el: any) => el[0].toLowerCase().indexOf('opaque') > -1);
 		const opaque: string | undefined = opaqueKV ? opaqueKV[1].replace(/"/g, '') : undefined;
-		
+
 		// Use the already validated nonceKV
 		const nonce: string = nonceKV![1].replace(/"/g, '');
 		const ha1 = crypto
@@ -382,7 +382,7 @@ export async function invokeAxios(
 	console.log('[DEBUG] invokeAxios called');
 	console.log('[DEBUG] axiosConfig.url:', axiosConfig.url);
 	console.log('[DEBUG] authOptions:', authOptions);
-	
+
 	try {
 		console.log('[DEBUG] Making initial axios request');
 		return await axios(axiosConfig);
@@ -390,22 +390,22 @@ export async function invokeAxios(
 		console.log('[DEBUG] Initial request failed, checking for digest auth retry');
 		console.log('[DEBUG] Error type:', error instanceof axios.AxiosError);
 		console.log('[DEBUG] Error details:', error);
-		
+
 		if (authOptions.sendImmediately !== false || !(error instanceof axios.AxiosError)) {
 			console.log('[DEBUG] Not retrying - sendImmediately:', authOptions.sendImmediately, 'isAxiosError:', error instanceof axios.AxiosError);
 			throw error;
 		}
-		
+
 		// for digest-auth
 		const { response } = error;
 		console.log('[DEBUG] Response status:', response?.status);
 		console.log('[DEBUG] www-authenticate header:', response?.headers?.['www-authenticate']);
-		
+
 		if (response?.status !== 401 || !response.headers['www-authenticate']?.includes('nonce')) {
 			console.log('[DEBUG] Not a digest auth case - status:', response?.status, 'has nonce:', response?.headers?.['www-authenticate']?.includes('nonce'));
 			throw error;
 		}
-		
+
 		console.log('[DEBUG] Attempting digest auth retry');
 		const { auth } = axiosConfig;
 		delete axiosConfig.auth;
@@ -1023,10 +1023,10 @@ function createOAuth2Client(credentials: OAuth2CredentialData): ClientOAuth2 {
 	console.log('[DEBUG] createOAuth2Client called');
 	console.log('[DEBUG] credentials.scope:', credentials.scope);
 	console.log('[DEBUG] credentials.scope type:', typeof credentials.scope);
-	
+
 	const scopes = credentials.scope ? credentials.scope.split(' ') : [];
 	console.log('[DEBUG] processed scopes:', scopes);
-	
+
 	return new ClientOAuth2({
 		clientId: credentials.clientId,
 		clientSecret: credentials.clientSecret,
@@ -1113,19 +1113,19 @@ export async function requestOAuth2(
 	// on the token-type used.
 	const newRequestOptions = token.sign(requestOptions as ClientOAuth2RequestObject);
 	const newRequestHeaders = (newRequestOptions.headers = newRequestOptions.headers ?? {});
-	
+
 	console.log('[DEBUG] OAuth2 token signed, headers:', newRequestHeaders);
 	console.log('[DEBUG] Authorization header:', newRequestHeaders.Authorization);
 	console.log('[DEBUG] keepBearer option:', oAuth2Options?.keepBearer);
-	
+
 	// If keep bearer is false remove the it from the authorization header
 	if (oAuth2Options?.keepBearer === false && typeof newRequestHeaders.Authorization === 'string') {
 		console.log('[DEBUG] Removing Bearer prefix from Authorization header');
 		console.log('[DEBUG] Authorization before split:', newRequestHeaders.Authorization);
-		
+
 		const authParts = newRequestHeaders.Authorization.split(' ');
 		console.log('[DEBUG] Authorization parts:', authParts);
-		
+
 		if (authParts.length >= 2) {
 			newRequestHeaders.Authorization = authParts[1];
 			console.log('[DEBUG] Authorization after split:', newRequestHeaders.Authorization);
