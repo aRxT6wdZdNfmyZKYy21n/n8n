@@ -273,14 +273,14 @@ function digestAuthAxiosConfig(
 	if (authDetails) {
 		const nonceCount = '000000001';
 		const cnonce = crypto.randomBytes(24).toString('hex');
-		
+
 		// Use the already validated realmKV and nonceKV
 		const realm: string = realmKV![1].replace(/"/g, '');
-		
+
 		// If authDetails does not have opaque, we should not add it to authorization.
 		const opaqueKV = authDetails.find((el: any) => el[0].toLowerCase().indexOf('opaque') > -1);
 		const opaque: string | undefined = opaqueKV ? opaqueKV[1].replace(/"/g, '') : undefined;
-		
+
 		// Use the already validated nonceKV
 		const nonce: string = nonceKV![1].replace(/"/g, '');
 		const ha1 = crypto
