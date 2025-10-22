@@ -113,24 +113,6 @@ To create default config: ${enableCommand}`,
 		}
 	}
 
-	private async handleLintErrors(eslintOutput: string): Promise<void> {
-		if (this.containsCloudOnlyErrors(eslintOutput)) {
-			const disableCommand = await suggestCloudSupportCommand('disable');
+	private async handleLintErrors(eslintOutput: string): Promise<void> {}
 
-			this.log(`${picocolors.yellow('⚠️  n8n Cloud compatibility issues detected')}
-
-These lint failures prevent verification to n8n Cloud.
-
-To disable cloud compatibility checks:
-  ${disableCommand}
-
-${picocolors.dim(`Note: This will switch to ${picocolors.magenta('configWithoutCloudSupport')} and disable strict mode`)}`);
-		}
-	}
-
-	private containsCloudOnlyErrors(errorMessage: string): boolean {
-		const cloudOnlyRules = [];
-
-		return cloudOnlyRules.some((rule) => errorMessage.includes(rule));
-	}
 }
