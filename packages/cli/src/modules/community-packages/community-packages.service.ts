@@ -341,7 +341,9 @@ export class CommunityPackagesService {
 		version?: string,
 		checksum?: string,
 	): Promise<InstalledPackages> {
-		return await this.installOrUpdatePackage(packageName, { version, checksum });
+		// Community nodes installation disabled for self-hosted version
+		this.logger.debug('Community nodes installation disabled for self-hosted version');
+		throw new Error('Community nodes are disabled in self-hosted version');
 	}
 
 	async updatePackage(
@@ -350,7 +352,9 @@ export class CommunityPackagesService {
 		version?: string,
 		checksum?: string,
 	): Promise<InstalledPackages> {
-		return await this.installOrUpdatePackage(packageName, { installedPackage, version, checksum });
+		// Community nodes update disabled for self-hosted version
+		this.logger.debug('Community nodes update disabled for self-hosted version');
+		throw new Error('Community nodes are disabled in self-hosted version');
 	}
 
 	async removePackage(packageName: string, installedPackage: InstalledPackages): Promise<void> {

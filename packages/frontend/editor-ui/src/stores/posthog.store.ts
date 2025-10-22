@@ -29,7 +29,7 @@ export const usePostHog = defineStore('posthog', () => {
 	const overrides: Ref<Record<string, string | boolean>> = ref({});
 
 	const reset = () => {
-		window.posthog?.reset?.();
+		// PostHog disabled for self-hosted version
 		featureFlags.value = null;
 		trackedDemoExp.value = {};
 	};
@@ -79,21 +79,8 @@ export const usePostHog = defineStore('posthog', () => {
 	}
 
 	const identify = () => {
-		const instanceId = rootStore.instanceId;
-		const user = usersStore.currentUser;
-		const versionCli = rootStore.versionCli;
-		const traits: Record<string, string | number> = {
-			instance_id: instanceId,
-			version_cli: versionCli,
-		};
-
-		if (user && typeof user.createdAt === 'string') {
-			traits.created_at_timestamp = new Date(user.createdAt).getTime();
-		}
-
-		// For PostHog, main ID _cannot_ be `undefined` as done for RudderStack.
-		const id = user ? `${instanceId}#${user.id}` : instanceId;
-		window.posthog?.identify?.(id, traits);
+		// PostHog disabled for self-hosted version
+		return;
 	};
 
 	const trackExperiment = (featFlags: FeatureFlags, name: string) => {
@@ -118,71 +105,18 @@ export const usePostHog = defineStore('posthog', () => {
 	});
 
 	const init = (evaluatedFeatureFlags?: FeatureFlags) => {
-		if (!window.posthog) {
-			return;
-		}
-
-		const config = settingsStore.settings.posthog;
-		if (!config.enabled) {
-			return;
-		}
-
-		const userId = usersStore.currentUserId;
-		if (!userId) {
-			return;
-		}
-
-		const instanceId = rootStore.instanceId;
-		const distinctId = `${instanceId}#${userId}`;
-
-		const options: Parameters<typeof window.posthog.init>[1] = {
-			api_host: settingsStore.settings.posthog.proxy,
-			autocapture: config.autocapture,
-			disable_session_recording: config.disableSessionRecording,
-			debug: config.debug,
-			session_recording: {
-				maskAllInputs: false,
-			},
-		};
-
-		window.posthog?.init(config.apiKey, options);
-		identify();
-
-		if (evaluatedFeatureFlags && Object.keys(evaluatedFeatureFlags).length) {
-			featureFlags.value = evaluatedFeatureFlags;
-			options.bootstrap = {
-				distinctId,
-				featureFlags: evaluatedFeatureFlags,
-			};
-
-			// does not need to be debounced really, but tracking does not fire without delay on page load
-			trackExperimentsDebounced(featureFlags.value);
-		} else {
-			// depend on client side evaluation if serverside evaluation fails
-			window.posthog?.onFeatureFlags?.((_, map: FeatureFlags) => {
-				featureFlags.value = map;
-
-				// must be debounced because it is called multiple times by posthog
-				trackExperimentsDebounced(featureFlags.value);
-			});
-		}
+		// PostHog disabled for self-hosted version
+		return;
 	};
 
 	const setMetadata = (metadata: IDataObject, target: 'user' | 'events') => {
-		if (typeof window.posthog?.people?.set !== 'function') return;
-		if (typeof window.posthog?.register !== 'function') return;
-
-		if (target === 'user') {
-			window.posthog?.people?.set(metadata);
-		} else if (target === 'events') {
-			window.posthog?.register(metadata);
-		}
+		// PostHog disabled for self-hosted version
+		return;
 	};
 
 	const capture = (event: string, properties: IDataObject) => {
-		if (typeof window.posthog?.capture === 'function') {
-			window.posthog.capture(event, properties);
-		}
+		// PostHog disabled for self-hosted version
+		return;
 	};
 
 	return {

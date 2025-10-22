@@ -1,5 +1,5 @@
 ARG NODE_VERSION=22.18.0
-ARG N8N_VERSION=snapshot
+ARG N8N_VERSION=self-hosted
 ARG LAUNCHER_VERSION=1.4.0
 ARG TARGETPLATFORM
 
@@ -43,11 +43,18 @@ RUN set -e; \
 FROM system-deps AS runtime
 
 ARG N8N_VERSION
-ARG N8N_RELEASE_TYPE=dev
+ARG N8N_RELEASE_TYPE=self-hosted
 ENV NODE_ENV=production
 ENV N8N_RELEASE_TYPE=${N8N_RELEASE_TYPE}
 ENV NODE_ICU_DATA=/usr/local/lib/node_modules/full-icu
 ENV SHELL=/bin/sh
+
+# Self-hosted specific environment variables
+ENV N8N_SELF_HOSTED=true
+ENV N8N_DISABLE_TELEMETRY=true
+ENV N8N_ENABLE_ALL_FEATURES=true
+ENV N8N_DISABLE_COMMUNITY_NODES=true
+ENV N8N_DISABLE_VERSION_CHECK=true
 
 WORKDIR /home/node
 
@@ -55,6 +62,9 @@ COPY --from=app-artifact-processor /app /usr/local/lib/node_modules/n8n
 COPY --from=launcher-downloader /launcher-bin/* /usr/local/bin/
 COPY docker/images/n8n/docker-entrypoint.sh /
 COPY docker/images/n8n/n8n-task-runners.json /etc/n8n-task-runners.json
+
+# Copy self-hosted documentation
+COPY docs/self-hosted /usr/local/lib/node_modules/n8n/docs/self-hosted
 
 RUN cd /usr/local/lib/node_modules/n8n && \
 		npm rebuild sqlite3 && \
@@ -68,8 +78,9 @@ EXPOSE 5678/tcp
 USER node
 ENTRYPOINT ["tini", "--", "/docker-entrypoint.sh"]
 
-LABEL org.opencontainers.image.title="n8n" \
-      org.opencontainers.image.description="Workflow Automation Tool" \
-      org.opencontainers.image.source="https://github.com/n8n-io/n8n" \
-      org.opencontainers.image.url="https://n8n.io" \
-      org.opencontainers.image.version=${N8N_VERSION}
+LABEL org.opencontainers.image.title="n8n Self-Hosted" \
+      org.opencontainers.image.description="Self-Hosted Workflow Automation Tool with All Enterprise Features" \
+      org.opencontainers.image.source="https://github.com/your-org/n8n-self-hosted" \
+      org.opencontainers.image.url="https://your-domain.com" \
+      org.opencontainers.image.version=${N8N_VERSION} \
+      org.opencontainers.image.vendor="Self-Hosted Edition"

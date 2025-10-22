@@ -58,13 +58,9 @@ export class LicenseService {
 	}
 
 	async requestEnterpriseTrial(user: User) {
-		await axios.post('https://enterprise.n8n.io/enterprise-trial', {
-			licenseType: 'enterprise',
-			firstName: user.firstName,
-			lastName: user.lastName,
-			email: user.email,
-			instanceUrl: this.urlService.getWebhookBaseUrl(),
-		});
+		// Enterprise trial requests disabled for self-hosted version
+		this.logger.debug('Enterprise trial requests disabled for self-hosted version');
+		return;
 	}
 
 	async registerCommunityEdition({
@@ -80,30 +76,12 @@ export class LicenseService {
 		instanceUrl: string;
 		licenseType: string;
 	}): Promise<{ title: string; text: string }> {
-		try {
-			const {
-				data: { licenseKey, ...rest },
-			} = await axios.post<{ title: string; text: string; licenseKey: string }>(
-				'https://enterprise.n8n.io/community-registered',
-				{
-					email,
-					instanceId,
-					instanceUrl,
-					licenseType,
-				},
-			);
-			this.eventService.emit('license-community-plus-registered', { userId, email, licenseKey });
-			return rest;
-		} catch (e: unknown) {
-			if (e instanceof AxiosError) {
-				const error = e as AxiosError<{ message: string }>;
-				const errorMsg = error.response?.data?.message ?? e.message;
-				throw new BadRequestError('Failed to register community edition: ' + errorMsg);
-			} else {
-				this.logger.error('Failed to register community edition', { error: ensureError(e) });
-				throw new BadRequestError('Failed to register community edition');
-			}
-		}
+		// Community edition registration disabled for self-hosted version
+		this.logger.debug('Community edition registration disabled for self-hosted version');
+		return {
+			title: 'Self-Hosted Edition',
+			text: 'All features are enabled in the self-hosted version.',
+		};
 	}
 
 	getManagementJwt(): string {
@@ -111,27 +89,15 @@ export class LicenseService {
 	}
 
 	async activateLicense(activationKey: string) {
-		try {
-			await this.license.activate(activationKey);
-		} catch (e) {
-			const message = this.mapErrorMessage(e as LicenseError, 'activate');
-			throw new BadRequestError(message);
-		}
+		// License activation disabled for self-hosted version
+		this.logger.debug('License activation disabled for self-hosted version');
+		return;
 	}
 
 	async renewLicense() {
-		if (this.license.getPlanName() === 'Community') return; // unlicensed, nothing to renew
-
-		try {
-			await this.license.renew();
-		} catch (e) {
-			const message = this.mapErrorMessage(e as LicenseError, 'renew');
-
-			this.eventService.emit('license-renewal-attempted', { success: false });
-			throw new BadRequestError(message);
-		}
-
-		this.eventService.emit('license-renewal-attempted', { success: true });
+		// License renewal disabled for self-hosted version
+		this.logger.debug('License renewal disabled for self-hosted version');
+		return;
 	}
 
 	private mapErrorMessage(error: LicenseError, action: 'activate' | 'renew') {

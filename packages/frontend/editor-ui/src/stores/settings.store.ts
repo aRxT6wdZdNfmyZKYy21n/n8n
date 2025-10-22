@@ -161,7 +161,7 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, () => {
 
 	const pushBackend = computed(() => settings.value.pushBackend);
 
-	const isCommunityNodesFeatureEnabled = computed(() => settings.value.communityNodesEnabled);
+	const isCommunityNodesFeatureEnabled = computed(() => false); // Disabled for self-hosted version
 
 	const isUnverifiedPackagesEnabled = computed(
 		() => settings.value.unverifiedCommunityNodesEnabled,
@@ -267,7 +267,8 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, () => {
 		rootStore.setBinaryDataMode(fetchedSettings.binaryDataMode);
 
 		if (fetchedSettings.telemetry.enabled) {
-			void eventsApi.sessionStarted(rootStore.restApiContext);
+			// Telemetry disabled for self-hosted version
+			// void eventsApi.sessionStarted(rootStore.restApiContext);
 		}
 	};
 
@@ -296,9 +297,9 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, () => {
 	};
 
 	const testTemplatesEndpoint = async () => {
-		const timeout = new Promise((_, reject) => setTimeout(() => reject(), 2000));
-		await Promise.race([testHealthEndpoint(templatesHost.value), timeout]);
-		templatesEndpointHealthy.value = true;
+		// Template endpoint testing disabled for self-hosted version
+		templatesEndpointHealthy.value = true; // Assume templates are always available locally
+		return;
 	};
 
 	const getTimezones = async (): Promise<IDataObject> => {

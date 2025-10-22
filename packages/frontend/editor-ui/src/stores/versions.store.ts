@@ -123,18 +123,8 @@ export const useVersionsStore = defineStore(STORES.VERSIONS, () => {
 	// ---------------------------------------------------------------------------
 
 	const fetchVersions = async () => {
-		try {
-			const { enabled, endpoint } = versionNotificationSettings.value;
-			if (enabled && endpoint) {
-				const rootStore = useRootStore();
-				const current = rootStore.versionCli;
-				const instanceId = rootStore.instanceId;
-				const versions = await versionsApi.getNextVersions(endpoint, current, instanceId);
-				setVersions({ versions, currentVersion: current });
-			}
-		} catch (e) {
-			console.error('Failed to fetch versions:', e);
-		}
+		// Version checking disabled for self-hosted version
+		return;
 	};
 
 	const setVersions = (params: SetVersionParams) => {
@@ -190,44 +180,8 @@ export const useVersionsStore = defineStore(STORES.VERSIONS, () => {
 	};
 
 	const fetchWhatsNew = async () => {
-		try {
-			const { enabled, whatsNewEnabled, whatsNewEndpoint } = versionNotificationSettings.value;
-			if (enabled && whatsNewEnabled && whatsNewEndpoint) {
-				const rootStore = useRootStore();
-				const current = rootStore.versionCli;
-				const instanceId = rootStore.instanceId;
-				const section = await versionsApi.getWhatsNewSection(whatsNewEndpoint, current, instanceId);
-
-				if (section.items?.length > 0) {
-					setWhatsNew(section);
-
-					if (shouldShowWhatsNewCallout()) {
-						whatsNewCallout.value = showMessage({
-							title: whatsNew.value.title,
-							message: whatsNew.value.calloutText,
-							duration: 0,
-							position: 'bottom-left',
-							customClass: 'clickable whats-new-notification',
-							onClick: () => {
-								const articleId = whatsNew.value.items[0]?.id ?? 0;
-								telemetry.track("User clicked on what's new notification", {
-									article_id: articleId,
-								});
-								uiStore.openModalWithData({
-									name: WHATS_NEW_MODAL_KEY,
-									data: { articleId },
-								});
-							},
-							onClose: () => {
-								dismissWhatsNewCallout();
-							},
-						});
-					}
-				}
-			}
-		} catch (e) {
-			console.error('Failed to fetch Whats New section:', e);
-		}
+		// What's New checking disabled for self-hosted version
+		return;
 	};
 
 	const initialize = (settings: IVersionNotificationSettings) => {

@@ -49,78 +49,9 @@ export class License implements LicenseProvider {
 		forceRecreate = false,
 		isCli = false,
 	}: { forceRecreate?: boolean; isCli?: boolean } = {}) {
-		if (this.manager && !forceRecreate) {
-			this.logger.warn('License manager already initialized or shutting down');
-			return;
-		}
-		if (this.isShuttingDown) {
-			this.logger.warn('License manager already shutting down');
-			return;
-		}
-
-		const { instanceType } = this.instanceSettings;
-		const isMainInstance = instanceType === 'main';
-		const server = this.globalConfig.license.serverUrl;
-		const offlineMode = !isMainInstance;
-		const autoRenewOffset = 72 * Time.hours.toSeconds;
-		const saveCertStr = isMainInstance
-			? async (value: TLicenseBlock) => await this.saveCertStr(value)
-			: async () => {};
-		const onFeatureChange = isMainInstance
-			? async () => await this.onFeatureChange()
-			: async () => {};
-		const onLicenseRenewed = isMainInstance
-			? async () => await this.onLicenseRenewed()
-			: async () => {};
-		const collectUsageMetrics = isMainInstance
-			? async () => await this.licenseMetricsService.collectUsageMetrics()
-			: async () => [];
-		const collectPassthroughData = isMainInstance
-			? async () => await this.licenseMetricsService.collectPassthroughData()
-			: async () => ({});
-		const onExpirySoon = !this.instanceSettings.isLeader ? () => this.onExpirySoon() : undefined;
-		const expirySoonOffsetMins = !this.instanceSettings.isLeader ? 120 : undefined;
-
-		const { isLeader } = this.instanceSettings;
-		const { autoRenewalEnabled } = this.globalConfig.license;
-		const eligibleToRenew = isCli || isLeader;
-
-		const shouldRenew = eligibleToRenew && autoRenewalEnabled;
-
-		if (eligibleToRenew && !autoRenewalEnabled) {
-			this.logger.warn(LICENSE_RENEWAL_DISABLED_WARNING);
-		}
-
-		try {
-			this.manager = new LicenseManager({
-				server,
-				tenantId: this.globalConfig.license.tenantId,
-				productIdentifier: `n8n-${N8N_VERSION}`,
-				autoRenewEnabled: shouldRenew,
-				renewOnInit: shouldRenew,
-				autoRenewOffset,
-				detachFloatingOnShutdown: this.globalConfig.license.detachFloatingOnShutdown,
-				offlineMode,
-				logger: this.logger,
-				loadCertStr: async () => await this.loadCertStr(),
-				saveCertStr,
-				deviceFingerprint: () => this.instanceSettings.instanceId,
-				collectUsageMetrics,
-				collectPassthroughData,
-				onFeatureChange,
-				onLicenseRenewed,
-				onExpirySoon,
-				expirySoonOffsetMins,
-			});
-
-			await this.manager.initialize();
-
-			this.logger.debug('License initialized');
-		} catch (error: unknown) {
-			if (error instanceof Error) {
-				this.logger.error('Could not initialize license manager sdk', { error });
-			}
-		}
+		// License manager disabled for self-hosted version
+		this.logger.debug('License manager disabled for self-hosted version');
+		return;
 	}
 
 	async loadCertStr(): Promise<TLicenseBlock> {
@@ -167,12 +98,9 @@ export class License implements LicenseProvider {
 	}
 
 	async activate(activationKey: string): Promise<void> {
-		if (!this.manager) {
-			return;
-		}
-
-		await this.manager.activate(activationKey);
-		this.logger.debug('License activated');
+		// License activation disabled for self-hosted version
+		this.logger.debug('License activation disabled for self-hosted version');
+		return;
 	}
 
 	@OnPubSubEvent('reload-license')
@@ -185,12 +113,9 @@ export class License implements LicenseProvider {
 	}
 
 	async renew() {
-		if (!this.manager) {
-			return;
-		}
-
-		await this.manager.renew();
-		this.logger.debug('License renewed');
+		// License renewal disabled for self-hosted version
+		this.logger.debug('License renewal disabled for self-hosted version');
+		return;
 	}
 
 	async clear() {
@@ -217,7 +142,8 @@ export class License implements LicenseProvider {
 	}
 
 	isLicensed(feature: BooleanLicenseFeature) {
-		return this.manager?.hasFeatureEnabled(feature) ?? false;
+		// All features enabled for self-hosted version
+		return true;
 	}
 
 	/** @deprecated Use `LicenseState.isSharingLicensed` instead. */
@@ -383,36 +309,43 @@ export class License implements LicenseProvider {
 
 	/** @deprecated Use `LicenseState` instead. */
 	getUsersLimit() {
-		return this.getValue(LICENSE_QUOTAS.USERS_LIMIT) ?? UNLIMITED_LICENSE_QUOTA;
+		// Unlimited users for self-hosted version
+		return UNLIMITED_LICENSE_QUOTA;
 	}
 
 	/** @deprecated Use `LicenseState` instead. */
 	getTriggerLimit() {
-		return this.getValue(LICENSE_QUOTAS.TRIGGER_LIMIT) ?? UNLIMITED_LICENSE_QUOTA;
+		// Unlimited triggers for self-hosted version
+		return UNLIMITED_LICENSE_QUOTA;
 	}
 
 	/** @deprecated Use `LicenseState` instead. */
 	getVariablesLimit() {
-		return this.getValue(LICENSE_QUOTAS.VARIABLES_LIMIT) ?? UNLIMITED_LICENSE_QUOTA;
+		// Unlimited variables for self-hosted version
+		return UNLIMITED_LICENSE_QUOTA;
 	}
 
 	/** @deprecated Use `LicenseState` instead. */
 	getAiCredits() {
-		return this.getValue(LICENSE_QUOTAS.AI_CREDITS) ?? 0;
+		// Unlimited AI credits for self-hosted version
+		return UNLIMITED_LICENSE_QUOTA;
 	}
 
 	/** @deprecated Use `LicenseState` instead. */
 	getWorkflowHistoryPruneLimit() {
-		return this.getValue(LICENSE_QUOTAS.WORKFLOW_HISTORY_PRUNE_LIMIT) ?? UNLIMITED_LICENSE_QUOTA;
+		// Unlimited workflow history for self-hosted version
+		return UNLIMITED_LICENSE_QUOTA;
 	}
 
 	/** @deprecated Use `LicenseState` instead. */
 	getTeamProjectLimit() {
-		return this.getValue(LICENSE_QUOTAS.TEAM_PROJECT_LIMIT) ?? 0;
+		// Unlimited team projects for self-hosted version
+		return UNLIMITED_LICENSE_QUOTA;
 	}
 
 	getPlanName(): string {
-		return this.getValue('planName') ?? 'Community';
+		// Self-hosted version with all features enabled
+		return 'Self-Hosted';
 	}
 
 	getInfo(): string {
