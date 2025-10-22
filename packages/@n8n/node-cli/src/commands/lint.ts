@@ -129,10 +129,7 @@ ${picocolors.dim(`Note: This will switch to ${picocolors.magenta('configWithoutC
 	}
 
 	private containsCloudOnlyErrors(errorMessage: string): boolean {
-		const cloudOnlyRules = [
-			'@n8n/eslint-plugin-community-nodes/no-restricted-globals',
-			'@n8n/eslint-plugin-community-nodes/no-restricted-imports',
-		];
+		const cloudOnlyRules = [];
 
 		return cloudOnlyRules.some((rule) => errorMessage.includes(rule));
 	}

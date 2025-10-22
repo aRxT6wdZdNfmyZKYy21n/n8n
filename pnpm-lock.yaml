@@ -882,43 +882,6 @@ importers:
         specifier: 'catalog:'
         version: 3.1.3(@types/debug@4.1.12)(@types/node@20.19.21)(jiti@2.6.1)(jsdom@23.0.1(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(sass@1.89.2)(terser@5.16.1)(tsx@4.19.3)
 
-  packages/@n8n/eslint-plugin-community-nodes:
-    dependencies:
-      '@typescript-eslint/utils':
-        specifier: ^8.35.0
-        version: 8.35.0(eslint@9.29.0(jiti@2.6.1))(typescript@5.9.2)
-      eslint:
-        specifier: '>= 9'
-        version: 9.29.0(jiti@2.6.1)
-      fastest-levenshtein:
-        specifier: 'catalog:'
-        version: 1.0.16
-    devDependencies:
-      '@n8n/typescript-config':
-        specifier: workspace:*
-        version: link:../typescript-config
-      '@n8n/vitest-config':
-        specifier: workspace:*
-        version: link:../vitest-config
-      '@typescript-eslint/rule-tester':
-        specifier: ^8.35.0
-        version: 8.35.0(eslint@9.29.0(jiti@2.6.1))(typescript@5.9.2)
-      eslint-doc-generator:
-        specifier: ^2.2.2
-        version: 2.2.2(eslint@9.29.0(jiti@2.6.1))(typescript@5.9.2)
-      eslint-plugin-eslint-plugin:
-        specifier: ^7.0.0
-        version: 7.0.0(eslint@9.29.0(jiti@2.6.1))
-      rimraf:
-        specifier: 'catalog:'
-        version: 6.0.1
-      typescript:
-        specifier: 5.9.2
-        version: 5.9.2
-      vitest:
-        specifier: 'catalog:'
-        version: 3.1.3(@types/debug@4.1.12)(@types/node@20.19.21)(jiti@2.6.1)(jsdom@23.0.1(bufferutil@4.0.9)(utf-8-validate@5.0.10))(lightningcss@1.30.2)(sass@1.89.2)(terser@5.16.1)(tsx@4.19.3)
-
   packages/@n8n/extension-sdk:
     dependencies:
       zod:
@@ -1016,9 +979,6 @@ importers:
       '@clack/prompts':
         specifier: ^0.11.0
         version: 0.11.0
-      '@n8n/eslint-plugin-community-nodes':
-        specifier: workspace:*
-        version: link:../eslint-plugin-community-nodes
       '@oclif/core':
         specifier: ^4.5.2
         version: 4.5.2
@@ -1303,9 +1263,6 @@ importers:
         specifier: 3.23.3
         version: 3.23.3(zod@3.25.67)
     devDependencies:
-      '@n8n/eslint-plugin-community-nodes':
-        specifier: workspace:*
-        version: link:../eslint-plugin-community-nodes
       '@types/basic-auth':
         specifier: 'catalog:'
         version: 1.1.3
@@ -1355,9 +1312,6 @@ importers:
 
   packages/@n8n/scan-community-package:
     dependencies:
-      '@n8n/eslint-plugin-community-nodes':
-        specifier: workspace:*
-        version: link:../eslint-plugin-community-nodes
       axios:
         specifier: 1.12.0
         version: 1.12.0(debug@4.4.1)
@@ -3143,9 +3097,6 @@ importers:
         specifier: 3.1.0
         version: 3.1.0
     devDependencies:
-      '@n8n/eslint-plugin-community-nodes':
-        specifier: workspace:*
-        version: link:../@n8n/eslint-plugin-community-nodes
       '@n8n/typescript-config':
         specifier: workspace:*
         version: link:../@n8n/typescript-config

@@ -1,5 +1,4 @@
 import eslint from '@eslint/js';
-import { n8nCommunityNodesPlugin } from '@n8n/eslint-plugin-community-nodes';
 import { globalIgnores } from 'eslint/config';
 import { createTypeScriptImportResolver } from 'eslint-import-resolver-typescript';
 import importPlugin from 'eslint-plugin-import-x';
@@ -47,7 +46,6 @@ function createConfig(supportCloud = true): ConfigArray {
 				...n8nNodesPlugin.configs.credentials.rules,
 				// Not valid for community nodes
 				'n8n-nodes-base/cred-class-field-documentation-url-miscased': 'off',
-				// @n8n/eslint-plugin-community-nodes credential-password-field rule is more accurate
 				'n8n-nodes-base/cred-class-field-type-options-password-missing': 'off',
 			},
 		},
