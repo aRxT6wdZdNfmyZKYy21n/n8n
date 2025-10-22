@@ -4,11 +4,7 @@
 		"clean": { "cache": false },
 		"build": {
 			"dependsOn": ["^build"],
-			"outputs": ["dist/**"],
-			"exclude": [
-				"@n8n/eslint-plugin-community-nodes",
-				"@n8n/scan-community-package"
-			]
+			"outputs": ["dist/**"]
 		},
 		"typecheck": {
 			"dependsOn": ["^typecheck", "^build"]
