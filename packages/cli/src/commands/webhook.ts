@@ -19,7 +19,6 @@ import { BaseCommand } from './base-command';
 export class Webhook extends BaseCommand {
 	protected server = Container.get(WebhookServer);
 
-	override needsCommunityPackages = true;
 
 	/**
 	 * Stops n8n in a graceful way.

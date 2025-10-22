@@ -60,7 +60,6 @@ export class Start extends BaseCommand<z.infer<typeof flagsSchema>> {
 
 	protected server = Container.get(Server);
 
-	override needsCommunityPackages = true;
 
 	override needsTaskRunner = true;
 

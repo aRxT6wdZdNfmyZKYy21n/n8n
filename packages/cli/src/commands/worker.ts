@@ -39,7 +39,6 @@ export class Worker extends BaseCommand<z.infer<typeof flagsSchema>> {
 
 	private scalingService: ScalingService;
 
-	override needsCommunityPackages = true;
 
 	override needsTaskRunner = true;
 
