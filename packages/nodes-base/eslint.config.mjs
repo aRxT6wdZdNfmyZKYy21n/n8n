@@ -6,9 +6,7 @@ export default defineConfig(
 	nodeConfig,
 	globalIgnores(['scenarios/**', 'scripts/**']),
 	{
-		plugins: {
-			'@n8n/community-nodes': n8nCommunityNodesPlugin,
-		},
+		plugins: {},
 
 		rules: {
 			'@n8n/community-nodes/credential-documentation-url': ['error', { allowSlugs: true }],

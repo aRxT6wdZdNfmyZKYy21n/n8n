@@ -1310,24 +1310,6 @@ importers:
         specifier: workspace:*
         version: link:../typescript-config
 
-  packages/@n8n/scan-community-package:
-    dependencies:
-      axios:
-        specifier: 1.12.0
-        version: 1.12.0(debug@4.4.1)
-      eslint:
-        specifier: 'catalog:'
-        version: 9.29.0(jiti@2.6.1)
-      fast-glob:
-        specifier: 'catalog:'
-        version: 3.2.12
-      semver:
-        specifier: ^7.5.4
-        version: 7.7.2
-      tmp:
-        specifier: 0.2.4
-        version: 0.2.4
-
   packages/@n8n/stylelint-config:
     dependencies:
       postcss-html:

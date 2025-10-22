@@ -13,9 +13,6 @@ function createConfig(supportCloud = true): ConfigArray {
 			extends: [
 				eslint.configs.recommended,
 				tseslint.configs.recommended,
-				supportCloud
-					? n8nCommunityNodesPlugin.configs.recommended
-					: n8nCommunityNodesPlugin.configs.recommendedWithoutN8nCloudSupport,
 				importPlugin.configs['flat/recommended'],
 			],
 			rules: {

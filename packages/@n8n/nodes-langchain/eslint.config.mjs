@@ -5,9 +5,7 @@ import nodesBasePlugin from 'eslint-plugin-n8n-nodes-base';
 export default defineConfig(
 	nodeConfig,
 	{
-		plugins: {
-			'@n8n/community-nodes': n8nCommunityNodesPlugin,
-		},
+		plugins: {},
 		rules: {
 			// TODO: remove all the following rules
 			eqeqeq: 'warn',
