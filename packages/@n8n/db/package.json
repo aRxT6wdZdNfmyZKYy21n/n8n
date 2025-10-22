@@ -37,6 +37,7 @@
     "nanoid": "catalog:",
     "p-lazy": "3.1.0",
     "reflect-metadata": "catalog:",
+    "ts-essentials": "catalog:",
     "uuid": "catalog:",
     "xss": "catalog:",
     "zod": "catalog:"

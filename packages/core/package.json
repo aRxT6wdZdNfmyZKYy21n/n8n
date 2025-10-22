@@ -35,7 +35,8 @@
     "@types/mime-types": "^2.1.0",
     "@types/proxy-from-env": "^1.0.4",
     "@types/uuid": "catalog:",
-    "@types/xml2js": "catalog:"
+    "@types/xml2js": "catalog:",
+    "ts-essentials": "catalog:"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "3.808.0",

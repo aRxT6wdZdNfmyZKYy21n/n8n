@@ -8,7 +8,7 @@ export const mockInstance = <T>(
 	constructor: Constructable<T>,
 	data: DeepPartial<T> | undefined = undefined,
 ) => {
-	const instance = mock<T>(data);
+	const instance = mock<T>(data as any);
 	Container.set(constructor, instance);
 	return instance;
 };
