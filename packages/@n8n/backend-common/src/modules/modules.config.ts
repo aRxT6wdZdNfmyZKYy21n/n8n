@@ -5,7 +5,6 @@ import { UnknownModuleError } from './errors/unknown-module.error';
 export const MODULE_NAMES = [
 	'insights',
 	'external-secrets',
-	'community-packages',
 	'data-table',
 	'mcp',
 	'chat-hub',

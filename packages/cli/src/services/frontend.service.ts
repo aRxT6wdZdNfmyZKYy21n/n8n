@@ -18,8 +18,6 @@ import { getLdapLoginLabel } from '@/ldap.ee/helpers.ee';
 import { License } from '@/license';
 import { LoadNodesAndCredentials } from '@/load-nodes-and-credentials';
 import { MfaService } from '@/mfa/mfa.service';
-import { CommunityPackagesConfig } from '@/modules/community-packages/community-packages.config';
-import type { CommunityPackagesService } from '@/modules/community-packages/community-packages.service';
 import { isApiEnabled } from '@/public-api';
 import { PushConfig } from '@/push/push.config';
 import { getSamlLoginLabel } from '@/sso.ee/saml/saml-helpers';
@@ -36,7 +34,6 @@ import { UrlService } from './url.service';
 export class FrontendService {
 	settings: FrontendSettings;
 
-	private communityPackagesService?: CommunityPackagesService;
 
 	constructor(
 		private readonly globalConfig: GlobalConfig,
@@ -60,14 +57,6 @@ export class FrontendService {
 
 		this.initSettings();
 
-		// @TODO: Move to community-packages module
-		if (Container.get(CommunityPackagesConfig).enabled) {
-			void import('@/modules/community-packages/community-packages.service').then(
-				({ CommunityPackagesService }) => {
-					this.communityPackagesService = Container.get(CommunityPackagesService);
-				},
-			);
-		}
 	}
 
 	private collectEnvFeatureFlags(): N8nEnvFeatFlags {
@@ -212,8 +201,8 @@ export class FrontendService {
 			pushBackend: this.pushConfig.backend,
 
 			// @TODO: Move to community-packages module
-			communityNodesEnabled: Container.get(CommunityPackagesConfig).enabled,
-			unverifiedCommunityNodesEnabled: Container.get(CommunityPackagesConfig).unverifiedEnabled,
+			communityNodesEnabled: false,
+			unverifiedCommunityNodesEnabled: false,
 
 			deployment: {
 				type: this.globalConfig.deployment.type,
@@ -412,9 +401,6 @@ export class FrontendService {
 			});
 		}
 
-		if (this.communityPackagesService) {
-			this.settings.missingPackages = this.communityPackagesService.hasMissingPackages;
-		}
 
 		if (isAiAssistantEnabled) {
 			this.settings.aiAssistant.enabled = isAiAssistantEnabled;

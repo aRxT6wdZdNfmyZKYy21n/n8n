@@ -25,7 +25,6 @@ describe('eligibleModules', () => {
 		process.env.N8N_DISABLED_MODULES = 'insights';
 		expect(Container.get(ModuleRegistry).eligibleModules).toEqual([
 			'external-secrets',
-			'community-packages',
 			'data-table',
 			'provisioning',
 		]);
@@ -36,7 +35,6 @@ describe('eligibleModules', () => {
 		expect(Container.get(ModuleRegistry).eligibleModules).toEqual([
 			'insights',
 			'external-secrets',
-			'community-packages',
 			'data-table',
 			'provisioning',
 		]);

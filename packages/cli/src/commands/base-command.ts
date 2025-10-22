@@ -31,7 +31,6 @@ import { TelemetryEventRelay } from '@/events/relays/telemetry.event-relay';
 import { ExternalHooks } from '@/external-hooks';
 import { License } from '@/license';
 import { LoadNodesAndCredentials } from '@/load-nodes-and-credentials';
-import { CommunityPackagesConfig } from '@/modules/community-packages/community-packages.config';
 import { NodeTypes } from '@/node-types';
 import { PostHogClient } from '@/posthog';
 import { ShutdownService } from '@/shutdown/shutdown.service';
@@ -70,8 +69,6 @@ export abstract class BaseCommand<F = never> {
 	protected gracefulShutdownTimeoutInS =
 		Container.get(GlobalConfig).generic.gracefulShutdownTimeout;
 
-	/** Whether to init community packages (if enabled) */
-	protected needsCommunityPackages = false;
 
 	/** Whether to init task runner (if enabled). */
 	protected needsTaskRunner = false;
@@ -133,14 +130,6 @@ export abstract class BaseCommand<F = never> {
 			);
 		}
 
-		// @TODO: Move to community-packages module
-		const communityPackagesConfig = Container.get(CommunityPackagesConfig);
-		if (communityPackagesConfig.enabled && this.needsCommunityPackages) {
-			const { CommunityPackagesService } = await import(
-				'@/modules/community-packages/community-packages.service'
-			);
-			await Container.get(CommunityPackagesService).init();
-		}
 
 		const taskRunnersConfig = this.globalConfig.taskRunners;
 

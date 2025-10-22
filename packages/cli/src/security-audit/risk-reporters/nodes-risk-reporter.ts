@@ -14,13 +14,11 @@ import {
 import type { Risk, RiskReporter } from '@/security-audit/types';
 import { getNodeTypes } from '@/security-audit/utils';
 
-import { PackagesRepository } from '../security-audit.repository';
 
 @Service()
 export class NodesRiskReporter implements RiskReporter {
 	constructor(
 		private readonly loadNodesAndCredentials: LoadNodesAndCredentials,
-		private readonly packagesRepository: PackagesRepository,
 	) {}
 
 	async report(workflows: IWorkflowBase[]) {
@@ -28,12 +26,9 @@ export class NodesRiskReporter implements RiskReporter {
 			OFFICIAL_RISKY_NODE_TYPES.has(node.type),
 		);
 
-		const [communityNodes, customNodes] = await Promise.all([
-			this.getCommunityNodeDetails(),
-			this.getCustomNodeDetails(),
-		]);
+		const customNodes = await this.getCustomNodeDetails();
 
-		const issues = [officialRiskyNodes, communityNodes, customNodes];
+		const issues = [officialRiskyNodes, customNodes];
 
 		if (issues.every((i) => i.length === 0)) return null;
 
@@ -56,24 +51,11 @@ export class NodesRiskReporter implements RiskReporter {
 			});
 		}
 
-		if (communityNodes.length > 0) {
-			report.sections.push({
-				title: NODES_REPORT.SECTIONS.COMMUNITY_NODES,
-				description: [
-					sentenceStart(communityNodes.length),
-					`sourced from the n8n community. Community nodes are not vetted by the n8n team and have full access to the host system. See: ${COMMUNITY_NODES_RISKS_URL}`,
-				].join(' '),
-				recommendation:
-					'Consider reviewing the source code in any community nodes installed in this n8n instance, and uninstalling any community nodes no longer in use.',
-				location: communityNodes,
-			});
-		}
-
 		if (customNodes.length > 0) {
 			report.sections.push({
 				title: NODES_REPORT.SECTIONS.CUSTOM_NODES,
 				description: [
-					sentenceStart(communityNodes.length),
+					sentenceStart(customNodes.length),
 					'unpublished and located in the host system. Custom nodes are not vetted by the n8n team and have full access to the host system.',
 				].join(' '),
 				recommendation:
@@ -85,21 +67,6 @@ export class NodesRiskReporter implements RiskReporter {
 		return report;
 	}
 
-	private async getCommunityNodeDetails() {
-		const installedPackages = await this.packagesRepository.find({ relations: ['installedNodes'] });
-
-		return installedPackages.reduce<Risk.CommunityNodeDetails[]>((acc, pkg) => {
-			pkg.installedNodes.forEach((node) =>
-				acc.push({
-					kind: 'community',
-					nodeType: node.type,
-					packageUrl: [NPM_PACKAGE_URL, pkg.packageName].join('/'),
-				}),
-			);
-
-			return acc;
-		}, []);
-	}
 
 	private async getCustomNodeDetails() {
 		const customNodeTypes: Risk.CustomNodeDetails[] = [];

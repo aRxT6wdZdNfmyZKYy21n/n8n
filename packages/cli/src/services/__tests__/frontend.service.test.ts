@@ -9,7 +9,6 @@ import type { CredentialsOverwrites } from '@/credentials-overwrites';
 import type { License } from '@/license';
 import type { LoadNodesAndCredentials } from '@/load-nodes-and-credentials';
 import type { MfaService } from '@/mfa/mfa.service';
-import { CommunityPackagesConfig } from '@/modules/community-packages/community-packages.config';
 import type { PushConfig } from '@/push/push.config';
 import { FrontendService } from '@/services/frontend.service';
 import type { UrlService } from '@/services/url.service';

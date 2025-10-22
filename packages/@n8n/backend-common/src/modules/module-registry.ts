@@ -31,7 +31,6 @@ export class ModuleRegistry {
 	private readonly defaultModules: ModuleName[] = [
 		'insights',
 		'external-secrets',
-		'community-packages',
 		'data-table',
 		'provisioning',
 	];
