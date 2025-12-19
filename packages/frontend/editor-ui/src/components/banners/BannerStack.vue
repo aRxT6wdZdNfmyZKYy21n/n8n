@@ -1,5 +1,4 @@
 <script lang="ts">
-import NonProductionLicenseBanner from '@/components/banners/NonProductionLicenseBanner.vue';
 import TrialOverBanner from '@/components/banners/TrialOverBanner.vue';
 import TrialBanner from '@/components/banners/TrialBanner.vue';
 import V1Banner from '@/components/banners/V1Banner.vue';
@@ -18,7 +17,6 @@ export const N8N_BANNERS: N8nBanners = {
 	TRIAL_OVER: { priority: 260, component: TrialOverBanner as Component },
 	EMAIL_CONFIRMATION: { priority: 250, component: EmailConfirmationBanner as Component },
 	TRIAL: { priority: 150, component: TrialBanner as Component },
-	NON_PRODUCTION_LICENSE: { priority: 140, component: NonProductionLicenseBanner as Component },
 	DATA_TABLE_STORAGE_LIMIT_WARNING: {
 		priority: 300,
 		component: DataTableStorageLimitWarningBanner as Component,

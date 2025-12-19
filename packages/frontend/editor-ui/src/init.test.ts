@@ -154,14 +154,13 @@ describe('Init', () => {
 		});
 
 		it('should initialize uiStore with banners based on settings', async () => {
-			settingsStore.isEnterpriseFeatureEnabled.showNonProdBanner = true;
 			settingsStore.settings.banners = { dismissed: [] };
 			settingsStore.settings.versionCli = '1.2.3';
 
 			await initializeCore();
 
 			expect(uiStore.initialize).toHaveBeenCalledWith({
-				banners: ['NON_PRODUCTION_LICENSE', 'V1'],
+				banners: ['V1'],
 			});
 		});
 	});
