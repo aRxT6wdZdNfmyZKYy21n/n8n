@@ -79,7 +79,7 @@ export class AuthController {
 			}
 		} else if (isLdapCurrentAuthenticationMethod()) {
 			const preliminaryUser = await handleEmailLogin(emailOrLdapLoginId, password);
-			if (preliminaryUser?.role.slug === GLOBAL_OWNER_ROLE.slug) {
+			if (preliminaryUser && preliminaryUser.role.slug === GLOBAL_OWNER_ROLE.slug) {
 				this.logger.debug('Login: Owner using email authentication (LDAP enabled)', {
 					emailOrLdapLoginId,
 					userId: preliminaryUser.id,
