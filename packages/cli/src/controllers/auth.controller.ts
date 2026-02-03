@@ -48,6 +48,14 @@ export class AuthController {
 	): Promise<PublicUser | undefined> {
 		const { emailOrLdapLoginId, password, mfaCode, mfaRecoveryCode } = payload;
 
+		this.logger.debug('Login attempt started', {
+			emailOrLdapLoginId,
+			hasPassword: !!password,
+			hasMfaCode: !!mfaCode,
+			hasMfaRecoveryCode: !!mfaRecoveryCode,
+			browserId: req.browserId,
+		});
+
 		let user: User | undefined;
 
 		let usedAuthenticationMethod = getCurrentAuthenticationMethod();
@@ -72,9 +80,16 @@ export class AuthController {
 		} else if (isLdapCurrentAuthenticationMethod()) {
 			const preliminaryUser = await handleEmailLogin(emailOrLdapLoginId, password);
 			if (preliminaryUser?.role.slug === GLOBAL_OWNER_ROLE.slug) {
+				this.logger.debug('Login: Owner using email authentication (LDAP enabled)', {
+					emailOrLdapLoginId,
+					userId: preliminaryUser.id,
+				});
 				user = preliminaryUser;
 				usedAuthenticationMethod = 'email';
 			} else {
+				this.logger.debug('Login: Attempting LDAP authentication', {
+					emailOrLdapLoginId,
+				});
 				const { LdapService } = await import('@/ldap.ee/ldap.service.ee');
 				user = await Container.get(LdapService).handleLdapLogin(emailOrLdapLoginId, password);
 			}
@@ -83,6 +98,14 @@ export class AuthController {
 		}
 
 		if (user) {
+			this.logger.debug('Login: User authenticated successfully', {
+				emailOrLdapLoginId,
+				userId: user.id,
+				email: user.email,
+				authenticationMethod: usedAuthenticationMethod,
+				mfaEnabled: user.mfaEnabled,
+			});
+
 			if (user.mfaEnabled) {
 				if (!mfaCode && !mfaRecoveryCode) {
 					throw new AuthError('MFA Error', 998);
@@ -106,12 +129,22 @@ export class AuthController {
 				authenticationMethod: usedAuthenticationMethod,
 			});
 
+			this.logger.debug('Login: Session cookie issued', {
+				userId: user.id,
+				email: user.email,
+				authenticationMethod: usedAuthenticationMethod,
+			});
+
 			return await this.userService.toPublic(user, {
 				posthog: this.postHog,
 				withScopes: true,
 				mfaAuthenticated: user.mfaEnabled,
 			});
 		}
+		this.logger.debug('Login: Authentication failed', {
+			emailOrLdapLoginId,
+			authenticationMethod: usedAuthenticationMethod,
+		});
 		this.eventService.emit('user-login-failed', {
 			authenticationMethod: usedAuthenticationMethod,
 			userEmail: emailOrLdapLoginId,
@@ -125,6 +158,11 @@ export class AuthController {
 		allowSkipMFA: true,
 	})
 	async currentUser(req: AuthenticatedRequest): Promise<PublicUser> {
+		this.logger.debug('Current user check', {
+			userId: req.user.id,
+			email: req.user.email,
+			usedMfa: req.authInfo?.usedMfa,
+		});
 		return await this.userService.toPublic(req.user, {
 			posthog: this.postHog,
 			withScopes: true,

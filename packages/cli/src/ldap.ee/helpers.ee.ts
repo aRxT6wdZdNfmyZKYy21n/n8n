@@ -1,3 +1,4 @@
+import { Logger } from '@n8n/backend-common';
 import { GlobalConfig } from '@n8n/config';
 import type { LdapConfig, ConnectionSecurity } from '@n8n/constants';
 import type { AuthProviderSyncHistory } from '@n8n/db';
@@ -300,7 +301,25 @@ export const updateLdapUserOnLocalDb = async (identity: AuthIdentity, data: Part
 		const user = await Container.get(UserRepository).findOneBy({ id: userId });
 
 		if (user) {
+			const oldEmail = user.email;
+			const oldFirstName = user.firstName;
+			const oldLastName = user.lastName;
+			const oldPassword = user.password ? '[REDACTED]' : null;
+
 			await Container.get(UserRepository).save({ id: userId, ...data }, { transaction: true });
+
+			const logger = Container.get(Logger);
+			logger.debug('LDAP - User data updated', {
+				userId,
+				oldEmail,
+				newEmail: data.email,
+				emailChanged: oldEmail !== data.email,
+				oldFirstName,
+				newFirstName: data.firstName,
+				oldLastName,
+				newLastName: data.lastName,
+				hasPassword: !!user.password,
+			});
 		}
 	}
 };

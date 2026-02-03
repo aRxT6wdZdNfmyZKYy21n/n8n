@@ -459,9 +459,17 @@ export class LdapService {
 	}
 
 	async handleLdapLogin(loginId: string, password: string): Promise<User | undefined> {
-		if (!isLdapEnabled()) return undefined;
+		this.logger.debug('LDAP - Starting login attempt', { loginId });
 
-		if (!this.config.loginEnabled) return undefined;
+		if (!isLdapEnabled()) {
+			this.logger.debug('LDAP - Login failed: LDAP not enabled');
+			return undefined;
+		}
+
+		if (!this.config.loginEnabled) {
+			this.logger.debug('LDAP - Login failed: LDAP login not enabled');
+			return undefined;
+		}
 
 		const { loginIdAttribute, userFilter } = this.config;
 
@@ -472,13 +480,31 @@ export class LdapService {
 			userFilter,
 		);
 
-		if (!ldapUser) return undefined;
+		if (!ldapUser) {
+			this.logger.debug('LDAP - Login failed: User not found or authentication failed', {
+				loginId,
+			});
+			return undefined;
+		}
 
 		const [ldapId, ldapAttributesValues] = mapLdapAttributesToUser(ldapUser, this.config);
 
 		const { email: emailAttributeValue } = ldapAttributesValues;
 
-		if (!ldapId || !emailAttributeValue) return undefined;
+		if (!ldapId || !emailAttributeValue) {
+			this.logger.debug('LDAP - Login failed: Missing ldapId or email', {
+				loginId,
+				ldapId,
+				emailAttributeValue,
+			});
+			return undefined;
+		}
+
+		this.logger.debug('LDAP - Found LDAP user', {
+			loginId,
+			ldapId,
+			email: emailAttributeValue,
+		});
 
 		const ldapAuthIdentity = await getAuthIdentityByLdapId(ldapId);
 		if (!ldapAuthIdentity) {
@@ -486,25 +512,69 @@ export class LdapService {
 
 			// check if there is an email user with the same email as the authenticated LDAP user trying to log-in
 			if (emailUser && emailUser.email === emailAttributeValue) {
+				this.logger.debug('LDAP - Converting email user to LDAP user', {
+					loginId,
+					userId: emailUser.id,
+					email: emailUser.email,
+				});
 				const identity = await createLdapAuthIdentity(emailUser, ldapId);
 				await updateLdapUserOnLocalDb(identity, ldapAttributesValues);
 			} else {
+				this.logger.debug('LDAP - Creating new LDAP user', {
+					loginId,
+					ldapId,
+					email: emailAttributeValue,
+				});
 				const user = await createLdapUserOnLocalDb(ldapAttributesValues, ldapId);
 				Container.get(EventService).emit('user-signed-up', {
 					user,
 					userType: 'ldap',
 					wasDisabledLdapUser: false,
 				});
+				this.logger.debug('LDAP - New LDAP user created', {
+					loginId,
+					userId: user.id,
+					email: user.email,
+				});
 				return user;
 			}
 		} else {
 			if (ldapAuthIdentity.user) {
-				if (ldapAuthIdentity.user.disabled) return undefined;
+				if (ldapAuthIdentity.user.disabled) {
+					this.logger.debug('LDAP - Login failed: User is disabled', {
+						loginId,
+						userId: ldapAuthIdentity.user.id,
+						email: ldapAuthIdentity.user.email,
+					});
+					return undefined;
+				}
+				this.logger.debug('LDAP - Updating existing LDAP user', {
+					loginId,
+					userId: ldapAuthIdentity.user.id,
+					email: ldapAuthIdentity.user.email,
+					newEmail: emailAttributeValue,
+					newFirstName: ldapAttributesValues.firstName,
+					newLastName: ldapAttributesValues.lastName,
+				});
 				await updateLdapUserOnLocalDb(ldapAuthIdentity, ldapAttributesValues);
 			}
 		}
 
 		// Retrieve the user again as user's data might have been updated
-		return (await getUserByLdapId(ldapId)) ?? undefined;
+		const finalUser = (await getUserByLdapId(ldapId)) ?? undefined;
+		if (finalUser) {
+			this.logger.debug('LDAP - Login successful', {
+				loginId,
+				userId: finalUser.id,
+				email: finalUser.email,
+				ldapId,
+			});
+		} else {
+			this.logger.warn('LDAP - Login failed: User not found after update', {
+				loginId,
+				ldapId,
+			});
+		}
+		return finalUser;
 	}
 }

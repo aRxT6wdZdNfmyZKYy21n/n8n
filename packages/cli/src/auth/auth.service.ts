@@ -86,16 +86,25 @@ export class AuthService {
 	createAuthMiddleware({ allowSkipMFA, allowSkipPreviewAuth }: CreateAuthMiddlewareOptions) {
 		return async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
 			const token = req.cookies[AUTH_COOKIE_NAME];
+			const endpoint = req.route ? `${req.baseUrl}${req.route.path}` : req.baseUrl;
 			if (token) {
 				try {
 					const isInvalid = await this.invalidAuthTokenRepository.existsBy({ token });
-					if (isInvalid) throw new AuthError('Unauthorized');
+					if (isInvalid) {
+						this.logger.debug('Auth middleware: Token is invalidated', { endpoint });
+						throw new AuthError('Unauthorized');
+					}
 					const [user, { usedMfa }] = await this.resolveJwt(token, req, res);
 					const mfaEnforced = this.mfaService.isMFAEnforced();
 					if (mfaEnforced && !usedMfa && !allowSkipMFA) {
 						// If MFA is enforced, we need to check if the user has MFA enabled and used it during authentication
 						if (user.mfaEnabled) {
 							// If the user has MFA enforced, but did not use it during authentication, we need to throw an error
+							this.logger.debug('Auth middleware: MFA not used during authentication', {
+								userId: user.id,
+								email: user.email,
+								endpoint,
+							});
 							throw new AuthError('MFA not used during authentication');
 						} else {
 							// In this case we don't want to clear the cookie, to allow for MFA setup
@@ -104,12 +113,23 @@ export class AuthService {
 						}
 					}
 
+					this.logger.debug('Auth middleware: User authenticated', {
+						userId: user.id,
+						email: user.email,
+						endpoint,
+						usedMfa,
+					});
+
 					req.user = user;
 					req.authInfo = {
 						usedMfa,
 					};
 				} catch (error) {
 					if (error instanceof JsonWebTokenError || error instanceof AuthError) {
+						this.logger.debug('Auth middleware: Authentication failed, clearing cookie', {
+							error: error.message,
+							endpoint,
+						});
 						this.clearCookie(res);
 					} else {
 						throw error;
@@ -122,7 +142,10 @@ export class AuthService {
 
 			if (req.user) next();
 			else if (shouldSkipAuth) next();
-			else res.status(401).json({ status: 'error', message: 'Unauthorized' });
+			else {
+				this.logger.debug('Auth middleware: No user found, returning 401', { endpoint });
+				res.status(401).json({ status: 'error', message: 'Unauthorized' });
+			}
 		};
 	}
 
@@ -159,6 +182,14 @@ export class AuthService {
 		}
 
 		const token = this.issueJWT(user, usedMfa, browserId);
+		const jwtHash = this.createJWTHash(user);
+		this.logger.debug('JWT cookie issued', {
+			userId: user.id,
+			email: user.email,
+			jwtHash,
+			usedMfa,
+			hasBrowserId: !!browserId,
+		});
 		const { samesite, secure } = this.globalConfig.auth.cookie;
 		res.cookie(AUTH_COOKIE_NAME, token, {
 			maxAge: this.jwtExpiration * Time.seconds.toMilliseconds,
@@ -195,14 +226,32 @@ export class AuthService {
 			relations: ['role'],
 		});
 
-		if (
-			// If not user is found
-			!user ||
-			// or, If the user has been deactivated (i.e. LDAP users)
-			user.disabled ||
-			// or, If the email or password has been updated
-			jwtPayload.hash !== this.createJWTHash(user)
-		) {
+		if (!user) {
+			this.logger.warn('JWT resolution failed: User not found', {
+				userId: jwtPayload.id,
+				endpoint: req.route ? `${req.baseUrl}${req.route.path}` : req.baseUrl,
+			});
+			throw new AuthError('Unauthorized');
+		}
+
+		if (user.disabled) {
+			this.logger.warn('JWT resolution failed: User is disabled', {
+				userId: user.id,
+				email: user.email,
+				endpoint: req.route ? `${req.baseUrl}${req.route.path}` : req.baseUrl,
+			});
+			throw new AuthError('Unauthorized');
+		}
+
+		const currentHash = this.createJWTHash(user);
+		if (jwtPayload.hash !== currentHash) {
+			this.logger.warn('JWT resolution failed: Hash mismatch (user data changed)', {
+				userId: user.id,
+				email: user.email,
+				tokenHash: jwtPayload.hash,
+				currentHash,
+				endpoint: req.route ? `${req.baseUrl}${req.route.path}` : req.baseUrl,
+			});
 			throw new AuthError('Unauthorized');
 		}
 
