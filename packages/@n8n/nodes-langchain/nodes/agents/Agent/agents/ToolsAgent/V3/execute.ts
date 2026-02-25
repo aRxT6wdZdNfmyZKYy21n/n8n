@@ -541,21 +541,8 @@ export async function toolsAgentExecute(
 		const outputParser = await getOptionalOutputParser(this, 0);
 		batchResults.forEach((result, index) => {
 			const itemIndex = i + index;
-			this.logger.debug('Tools Agent V3: Processing batch result', {
-				index,
-				itemIndex,
-				status: result.status,
-			});
 			if (result.status === 'rejected') {
 				const reason = result.reason;
-				this.logger.debug('Tools Agent V3: Promise rejected', {
-					itemIndex,
-					reasonType: reason === null ? 'null' : typeof reason,
-					reasonIsError: reason instanceof Error,
-					reasonMessage: reason instanceof Error ? reason.message : undefined,
-					reasonString:
-						reason !== undefined && reason !== null ? String(reason).slice(0, 500) : undefined,
-				});
 				const errorMessage =
 					reason instanceof Error
 						? reason.message
@@ -563,14 +550,6 @@ export async function toolsAgentExecute(
 							? String(reason)
 							: 'Unknown error';
 				const errorForDisplay = new Error(errorMessage);
-				const node = this.getNode();
-				this.logger.debug('Tools Agent V3: About to handle rejection', {
-					itemIndex,
-					errorMessage,
-					errorForDisplayMessage: errorForDisplay.message,
-					hasNode: node != null,
-					continueOnFail: this.continueOnFail(),
-				});
 				if (this.continueOnFail()) {
 					returnData.push({
 						json: { error: errorMessage },
@@ -578,15 +557,10 @@ export async function toolsAgentExecute(
 					} as INodeExecutionData);
 					return;
 				} else {
-					throw new NodeOperationError(node, errorForDisplay);
+					throw new NodeOperationError(this.getNode(), errorForDisplay);
 				}
 			}
 			const response = result.value;
-			this.logger.debug('Tools Agent V3: Promise fulfilled', {
-				itemIndex,
-				hasResponse: response != null,
-				hasActions: response != null && 'actions' in response,
-			});
 
 			if ('actions' in response) {
 				if (!request) {
