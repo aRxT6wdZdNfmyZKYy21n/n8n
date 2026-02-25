@@ -387,7 +387,8 @@ export async function toolsAgentExecute(
 				return null;
 			}
 
-			const steps = buildSteps(response, itemIndex);
+			try {
+				const steps = buildSteps(response, itemIndex);
 
 			const input = getPromptInputByType({
 				ctx: this,
@@ -532,6 +533,15 @@ export async function toolsAgentExecute(
 					actions,
 					metadata: { previousRequests: buildSteps(response, itemIndex) },
 				};
+			}
+			} catch (err) {
+				this.logger.debug('Tools Agent V3: Error inside batch promise (before result handling)', {
+					itemIndex,
+					errorName: err instanceof Error ? err.name : undefined,
+					errorMessage: err instanceof Error ? err.message : String(err),
+					stack: err instanceof Error ? err.stack : undefined,
+				});
+				throw err;
 			}
 		});
 
