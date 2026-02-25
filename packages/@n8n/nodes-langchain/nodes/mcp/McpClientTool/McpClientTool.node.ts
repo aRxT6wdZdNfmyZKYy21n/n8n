@@ -19,6 +19,7 @@ import type { McpServerTransport, McpAuthenticationOption, McpToolIncludeMode } 
 import {
 	connectMcpClient,
 	createCallTool,
+	filterArgumentsByToolSchema,
 	getAllTools,
 	getAuthHeaders,
 	getSelectedTools,
@@ -358,11 +359,19 @@ export class McpClientTool implements INodeType {
 			logWrapper(
 				mcpToolToDynamicTool(
 					tool,
-					createCallTool(tool.name, client, config.timeout, (errorMessage) => {
-						const error = new NodeOperationError(node, errorMessage, { itemIndex });
-						void this.addOutputData(NodeConnectionTypes.AiTool, itemIndex, error);
-						this.logger.error(`McpClientTool: Tool "${tool.name}" failed to execute`, { error });
-					}),
+					createCallTool(
+						tool.name,
+						client,
+						config.timeout,
+						(errorMessage) => {
+							const error = new NodeOperationError(node, errorMessage, { itemIndex });
+							void this.addOutputData(NodeConnectionTypes.AiTool, itemIndex, error);
+							this.logger.error(`McpClientTool: Tool "${tool.name}" failed to execute`, {
+								error,
+							});
+						},
+						tool.inputSchema,
+					),
 				),
 				this,
 			),
@@ -406,13 +415,13 @@ export class McpClientTool implements INodeType {
 				const toolName = item.json.tool;
 				if (toolName === tool.name) {
 					// Extract the tool name from arguments before passing to MCP
-					const { tool: _, ...toolArguments } = item.json;
+					const { tool: _, ...toolArguments } = item.json as IDataObject;
 					const params: {
 						name: string;
 						arguments: IDataObject;
 					} = {
 						name: tool.name,
-						arguments: toolArguments,
+						arguments: filterArgumentsByToolSchema(toolArguments, tool.inputSchema),
 					};
 					const result = await client.callTool(params);
 					returnData.push({

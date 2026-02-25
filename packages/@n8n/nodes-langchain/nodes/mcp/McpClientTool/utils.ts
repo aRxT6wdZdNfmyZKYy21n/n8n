@@ -3,6 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { CompatibilityCallToolResultSchema } from '@modelcontextprotocol/sdk/types.js';
+import type { JSONSchema7 } from 'json-schema';
 import { convertJsonSchemaToZod } from '@utils/schemaParsing';
 import { Toolkit } from 'langchain/agents';
 import {
@@ -20,6 +21,25 @@ import type {
 	McpTool,
 	McpToolIncludeMode,
 } from './types';
+
+/**
+ * Filter arguments to only include keys declared in the tool's inputSchema.
+ * This ensures we never pass internal fields (e.g. toolCallId) to MCP unless
+ * the server explicitly declares support for them in the tool schema.
+ */
+export function filterArgumentsByToolSchema(
+	args: IDataObject,
+	inputSchema: JSONSchema7,
+): IDataObject {
+	const properties = inputSchema.properties;
+	if (!properties || typeof properties !== 'object') {
+		return {};
+	}
+	const allowedKeys = new Set(Object.keys(properties));
+	return Object.fromEntries(
+		Object.entries(args).filter(([key]) => allowedKeys.has(key)),
+	) as IDataObject;
+}
 
 export async function getAllTools(client: Client, cursor?: string): Promise<McpTool[]> {
 	const { tools, nextCursor } = await client.listTools({ cursor });
@@ -77,7 +97,13 @@ export const getErrorDescriptionFromToolCall = (result: unknown): string | undef
 };
 
 export const createCallTool =
-	(name: string, client: Client, timeout: number, onError: (error: string) => void) =>
+	(
+		name: string,
+		client: Client,
+		timeout: number,
+		onError: (error: string) => void,
+		inputSchema: JSONSchema7,
+	) =>
 	async (args: IDataObject) => {
 		let result: Awaited<ReturnType<Client['callTool']>>;
 
@@ -88,10 +114,16 @@ export const createCallTool =
 			return errorDescription;
 		}
 
+		const filteredArgs = filterArgumentsByToolSchema(args, inputSchema);
+
 		try {
-			result = await client.callTool({ name, arguments: args }, CompatibilityCallToolResultSchema, {
-				timeout,
-			});
+			result = await client.callTool(
+				{ name, arguments: filteredArgs },
+				CompatibilityCallToolResultSchema,
+				{
+					timeout,
+				},
+			);
 		} catch (error) {
 			return handleError(error);
 		}
