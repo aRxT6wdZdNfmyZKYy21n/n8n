@@ -371,6 +371,7 @@ export class McpClientTool implements INodeType {
 							});
 						},
 						tool.inputSchema,
+						this.logger,
 					),
 				),
 				this,
@@ -416,13 +417,28 @@ export class McpClientTool implements INodeType {
 				if (toolName === tool.name) {
 					// Extract the tool name from arguments before passing to MCP
 					const { tool: _, ...toolArguments } = item.json as IDataObject;
+					this.logger.debug('McpClientTool: execute() – preparing tool call', {
+						toolName: tool.name,
+						incomingKeys: Object.keys(toolArguments),
+						hasToolCallId: 'toolCallId' in toolArguments,
+					});
+					const filteredArguments = filterArgumentsByToolSchema(
+						toolArguments,
+						tool.inputSchema,
+						{ toolName: tool.name, logger: this.logger },
+					);
 					const params: {
 						name: string;
 						arguments: IDataObject;
 					} = {
 						name: tool.name,
-						arguments: filterArgumentsByToolSchema(toolArguments, tool.inputSchema),
+						arguments: filteredArguments,
 					};
+					this.logger.debug('McpClientTool: execute() – calling MCP', {
+						toolName: tool.name,
+						argumentsKeys: Object.keys(filteredArguments),
+						arguments: filteredArguments,
+					});
 					const result = await client.callTool(params);
 					returnData.push({
 						json: {

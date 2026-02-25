@@ -22,6 +22,9 @@ import type {
 	McpToolIncludeMode,
 } from './types';
 
+/** Logger interface for optional debug output */
+export type McpToolLogger = { debug: (msg: string, meta?: object) => void };
+
 /**
  * Filter arguments to only include keys declared in the tool's inputSchema.
  * This ensures we never pass internal fields (e.g. toolCallId) to MCP unless
@@ -30,15 +33,36 @@ import type {
 export function filterArgumentsByToolSchema(
 	args: IDataObject,
 	inputSchema: JSONSchema7,
+	options?: { toolName?: string; logger?: McpToolLogger },
 ): IDataObject {
 	const properties = inputSchema.properties;
+	const logger = options?.logger;
+	const toolName = options?.toolName ?? 'unknown';
+
 	if (!properties || typeof properties !== 'object') {
+		if (logger) {
+			logger.debug('McpClientTool: Tool schema has no properties, passing no arguments to MCP', {
+				toolName,
+				incomingKeys: Object.keys(args),
+			});
+		}
 		return {};
 	}
 	const allowedKeys = new Set(Object.keys(properties));
-	return Object.fromEntries(
+	const filtered = Object.fromEntries(
 		Object.entries(args).filter(([key]) => allowedKeys.has(key)),
 	) as IDataObject;
+	const droppedKeys = Object.keys(args).filter((k) => !allowedKeys.has(k));
+	if (logger) {
+		logger.debug('McpClientTool: Filtered tool arguments by schema', {
+			toolName,
+			incomingKeys: Object.keys(args),
+			schemaKeys: Array.from(allowedKeys),
+			filteredKeys: Object.keys(filtered),
+			droppedKeys: droppedKeys.length > 0 ? droppedKeys : undefined,
+		});
+	}
+	return filtered;
 }
 
 export async function getAllTools(client: Client, cursor?: string): Promise<McpTool[]> {
@@ -103,6 +127,7 @@ export const createCallTool =
 		timeout: number,
 		onError: (error: string) => void,
 		inputSchema: JSONSchema7,
+		logger?: McpToolLogger,
 	) =>
 	async (args: IDataObject) => {
 		let result: Awaited<ReturnType<Client['callTool']>>;
@@ -114,7 +139,26 @@ export const createCallTool =
 			return errorDescription;
 		}
 
-		const filteredArgs = filterArgumentsByToolSchema(args, inputSchema);
+		if (logger) {
+			logger.debug('McpClientTool: Tool invoked (before filter)', {
+				toolName: name,
+				incomingKeys: Object.keys(args),
+				hasToolCallId: 'toolCallId' in args,
+			});
+		}
+
+		const filteredArgs = filterArgumentsByToolSchema(args, inputSchema, {
+			toolName: name,
+			logger,
+		});
+
+		if (logger) {
+			logger.debug('McpClientTool: Calling MCP tool', {
+				toolName: name,
+				argumentsKeys: Object.keys(filteredArgs),
+				arguments: filteredArgs,
+			});
+		}
 
 		try {
 			result = await client.callTool(
@@ -125,11 +169,31 @@ export const createCallTool =
 				},
 			);
 		} catch (error) {
+			if (logger) {
+				logger.debug('McpClientTool: Tool call threw', {
+					toolName: name,
+					error: error instanceof Error ? error.message : String(error),
+				});
+			}
 			return handleError(error);
 		}
 
 		if (result.isError) {
+			if (logger) {
+				logger.debug('McpClientTool: MCP returned error result', {
+					toolName: name,
+					result: String(result),
+				});
+			}
 			return handleError(result);
+		}
+
+		if (logger) {
+			logger.debug('McpClientTool: Tool call succeeded', {
+				toolName: name,
+				hasContent: result.content !== undefined,
+				hasToolResult: result.toolResult !== undefined,
+			});
 		}
 
 		if (result.toolResult !== undefined) {
