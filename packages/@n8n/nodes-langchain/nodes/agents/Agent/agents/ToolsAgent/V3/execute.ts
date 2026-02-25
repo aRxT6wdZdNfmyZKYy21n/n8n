@@ -542,13 +542,7 @@ export async function toolsAgentExecute(
 		batchResults.forEach((result, index) => {
 			const itemIndex = i + index;
 			if (result.status === 'rejected') {
-				const reason = result.reason;
-				const error =
-					reason instanceof Error
-						? reason
-						: new Error(
-								reason !== undefined && reason !== null ? String(reason) : 'Unknown error',
-							);
+				const error = result.reason as Error;
 				if (this.continueOnFail()) {
 					returnData.push({
 						json: { error: error.message },
