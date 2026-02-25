@@ -543,20 +543,21 @@ export async function toolsAgentExecute(
 			const itemIndex = i + index;
 			if (result.status === 'rejected') {
 				const reason = result.reason;
-				const error =
+				const errorMessage =
 					reason instanceof Error
-						? reason
-						: new Error(
-								reason !== undefined && reason !== null ? String(reason) : 'Unknown error',
-							);
+						? reason.message
+						: reason !== undefined && reason !== null
+							? String(reason)
+							: 'Unknown error';
+				const errorForDisplay = new Error(errorMessage);
 				if (this.continueOnFail()) {
 					returnData.push({
-						json: { error: error.message },
+						json: { error: errorMessage },
 						pairedItem: { item: itemIndex },
 					} as INodeExecutionData);
 					return;
 				} else {
-					throw new NodeOperationError(this.getNode(), error);
+					throw new NodeOperationError(this.getNode(), errorForDisplay);
 				}
 			}
 			const response = result.value;
