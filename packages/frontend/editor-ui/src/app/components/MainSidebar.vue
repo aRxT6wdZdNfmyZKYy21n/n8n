@@ -78,13 +78,6 @@ const resourceCenterLabel = computed(() => {
 
 const mainMenuItems = computed<IMenuItem[]>(() => [
 	{
-		id: 'cloud-admin',
-		position: 'bottom',
-		label: 'Admin Panel',
-		icon: 'cloud',
-		available: settingsStore.isCloudDeployment && hasPermission(['instanceOwner']),
-	},
-	{
 		// Resource Center - replaces Templates when experiment is enabled
 		id: 'resource-center',
 		icon: 'lightbulb',

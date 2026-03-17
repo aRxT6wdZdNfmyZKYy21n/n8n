@@ -180,8 +180,9 @@ export abstract class BaseCommand<F = never> {
 		// TODO: remove this after the cyclic dependencies around the event-bus are resolved
 		Container.get(MessageEventBus);
 
-		await Container.get(PostHogClient).init();
-		await Container.get(TelemetryEventRelay).init();
+		// In this fork, external telemetry (PostHog and related relays) is disabled.
+		// We intentionally skip initializing PostHogClient and TelemetryEventRelay
+		// to avoid any outbound telemetry traffic.
 		Container.get(WorkflowFailureNotificationEventRelay).init();
 	}
 

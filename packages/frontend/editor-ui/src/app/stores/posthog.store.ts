@@ -118,54 +118,11 @@ export const usePostHog = defineStore('posthog', () => {
 	});
 
 	const init = (evaluatedFeatureFlags?: FeatureFlags) => {
-		if (!window.posthog) {
-			return;
-		}
-
-		const config = settingsStore.settings.posthog;
-		if (!config.enabled) {
-			return;
-		}
-
-		const userId = usersStore.currentUserId;
-		if (!userId) {
-			return;
-		}
-
-		const instanceId = rootStore.instanceId;
-		const distinctId = `${instanceId}#${userId}`;
-
-		const options: Parameters<typeof window.posthog.init>[1] = {
-			api_host: settingsStore.settings.posthog.proxy,
-			autocapture: config.autocapture,
-			disable_session_recording: config.disableSessionRecording,
-			debug: false, // Enables console logs for debugging reasons
-			session_recording: {
-				maskAllInputs: false,
-			},
-		};
-
-		window.posthog?.init(config.apiKey, options);
-		identify();
-
-		if (evaluatedFeatureFlags && Object.keys(evaluatedFeatureFlags).length) {
-			featureFlags.value = evaluatedFeatureFlags;
-			options.bootstrap = {
-				distinctId,
-				featureFlags: evaluatedFeatureFlags,
-			};
-
-			// does not need to be debounced really, but tracking does not fire without delay on page load
-			trackExperimentsDebounced(featureFlags.value);
-		} else {
-			// depend on client side evaluation if serverside evaluation fails
-			window.posthog?.onFeatureFlags?.((_, map: FeatureFlags) => {
-				featureFlags.value = map;
-
-				// must be debounced because it is called multiple times by posthog
-				trackExperimentsDebounced(featureFlags.value);
-			});
-		}
+		// In this fork, PostHog is fully disabled on the frontend.
+		// Keep function for API compatibility but do not initialize PostHog
+		// or perform any network calls.
+		featureFlags.value = evaluatedFeatureFlags ?? {};
+		return;
 	};
 
 	const setMetadata = (metadata: IDataObject, target: 'user' | 'events') => {

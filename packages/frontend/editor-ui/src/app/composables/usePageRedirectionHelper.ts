@@ -20,26 +20,13 @@ export function usePageRedirectionHelper() {
 	 * Otherwise, it redirect them to our docs.
 	 */
 	const goToVersions = async () => {
-		let versionsLink = versionsStore.infoUrl;
-
-		if (usersStore.isInstanceOwner && settingsStore.isCloudDeployment) {
-			versionsLink = await cloudPlanStore.generateCloudDashboardAutoLoginLink({
-				redirectionPath: '/manage',
-			});
-		}
-
-		location.href = versionsLink;
+		// In this self-hosted fork we always use the local infoUrl
+		// and never redirect to the n8n cloud dashboard.
+		location.href = versionsStore.infoUrl;
 	};
 
 	const goToDashboard = async () => {
-		if (usersStore.isInstanceOwner && settingsStore.isCloudDeployment) {
-			const dashboardLink = await cloudPlanStore.generateCloudDashboardAutoLoginLink({
-				redirectionPath: '/dashboard',
-			});
-
-			location.href = dashboardLink;
-		}
-
+		// No-op for self-hosted: there is no cloud dashboard to open.
 		return;
 	};
 
@@ -54,51 +41,20 @@ export function usePageRedirectionHelper() {
 		utm_campaign: UTMCampaign,
 		mode: 'open' | 'redirect' = 'open',
 	) => {
-		const shouldProceed = await confirmIfBuilderStreaming();
-		if (!shouldProceed) return;
-
-		const { usageLeft, trialDaysLeft, userIsTrialing } = cloudPlanStore;
-		const { executionsLeft, workflowsLeft } = usageLeft;
-		const deploymentType = settingsStore.deploymentType;
-
-		telemetry.track('User clicked upgrade CTA', {
-			source,
-			isTrial: userIsTrialing,
-			deploymentType,
-			trialDaysLeft,
-			executionsLeft,
-			workflowsLeft,
-		});
-
-		const upgradeLink = await generateUpgradeLink(source, utm_campaign);
-
-		if (mode === 'open') {
-			window.open(upgradeLink, '_blank');
-		} else {
-			location.href = upgradeLink;
-		}
+		// In this fork, upgrade CTAs do nothing:
+		// - no telemetry tracking
+		// - no redirects to pricing page or cloud dashboard
+		void source;
+		void utm_campaign;
+		void mode;
+		return;
 	};
 
 	const generateUpgradeLink = async (source: string, utm_campaign: string) => {
-		let upgradeLink = N8N_PRICING_PAGE_URL;
-
-		if (usersStore.isInstanceOwner && settingsStore.isCloudDeployment) {
-			upgradeLink = await cloudPlanStore.generateCloudDashboardAutoLoginLink({
-				redirectionPath: '/account/change-plan',
-			});
-		}
-
-		const url = new URL(upgradeLink);
-
-		if (utm_campaign) {
-			url.searchParams.set('utm_campaign', utm_campaign);
-		}
-
-		if (source) {
-			url.searchParams.set('source', source);
-		}
-
-		return url.toString();
+		// Kept for API compatibility; never used in this fork.
+		void source;
+		void utm_campaign;
+		return N8N_PRICING_PAGE_URL;
 	};
 
 	return {
