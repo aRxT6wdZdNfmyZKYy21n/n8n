@@ -13,81 +13,46 @@ const POSTHOG_GROUP_TYPE_INSTANCE = 'company';
 
 @Service()
 export class PostHogClient {
-	private postHog?: PostHog;
+	// In this fork we completely disable PostHog usage
+	// while keeping the public API for callers intact.
 
+	// eslint-disable-next-line @typescript-eslint/no-empty-function
 	constructor(
 		private readonly instanceSettings: InstanceSettings,
 		private readonly globalConfig: GlobalConfig,
 	) {}
 
 	async init() {
-		const { enabled, posthogConfig } = this.globalConfig.diagnostics;
-		if (!enabled) {
-			return;
-		}
-
-		const { PostHog } = await import('posthog-node');
-		this.postHog = new PostHog(posthogConfig.apiKey, {
-			host: posthogConfig.apiHost,
-		});
+		// No-op: do not initialize PostHog client or perform any network calls
+		return;
 	}
 
 	async stop(): Promise<void> {
-		if (this.postHog) {
-			return this.postHog.shutdown();
-		}
+		// No-op: nothing to shut down
+		return;
 	}
 
-	track(payload: { userId: string; event: string; properties: ITelemetryTrackProperties }): void {
-		this.postHog?.capture({
-			distinctId: payload.userId,
-			sendFeatureFlags: true,
-			...payload,
-		});
+	track(_payload: { userId: string; event: string; properties: ITelemetryTrackProperties }): void {
+		// No-op: tracking disabled
 	}
 
-	groupIdentify({
-		instanceId,
-		distinctId,
-		properties,
-	}: {
+	groupIdentify(_args: {
 		instanceId: string;
 		distinctId?: string;
 		properties: Record<string, string | number> | undefined;
 	}): void {
-		if (!instanceId) return;
-
-		this.postHog?.groupIdentify({
-			groupType: POSTHOG_GROUP_TYPE_INSTANCE,
-			groupKey: instanceId,
-			properties,
-			...(distinctId && { distinctId }),
-		});
+		// No-op: group identification disabled
 	}
 
-	identify({
-		distinctId,
-		properties,
-	}: { distinctId: string; properties: Record<string | number, unknown> | undefined }): void {
-		if (!distinctId) return;
-
-		this.postHog?.identify({
-			distinctId,
-			properties: properties ?? undefined,
-		});
+	identify(_args: {
+		distinctId: string;
+		properties: Record<string | number, unknown> | undefined;
+	}): void {
+		// No-op: identification disabled
 	}
 
-	async getFeatureFlags(user: Pick<PublicUser, 'id' | 'createdAt'>): Promise<FeatureFlags> {
-		if (!this.postHog) return {};
-
-		const fullId = [this.instanceSettings.instanceId, user.id].join('#');
-
-		// cannot use local evaluation because that requires PostHog personal api key with org-wide
-		// https://github.com/PostHog/posthog/issues/4849
-		return await this.postHog.getAllFlags(fullId, {
-			personProperties: {
-				created_at_timestamp: user.createdAt.getTime().toString(),
-			},
-		});
+	async getFeatureFlags(_user: Pick<PublicUser, 'id' | 'createdAt'>): Promise<FeatureFlags> {
+		// Always return empty flags to avoid contacting PostHog
+		return {};
 	}
 }

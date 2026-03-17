@@ -15,8 +15,6 @@ import { useRootStore } from '@n8n/stores/useRootStore';
 import { useNDVStore } from '@/features/ndv/shared/ndv.store';
 import { useSettingsStore } from '@/app/stores/settings.store';
 import { useUIStore } from '@/app/stores/ui.store';
-import { usePostHog } from '@/app/stores/posthog.store';
-
 export class Telemetry {
 	private pageEventQueue: Array<{ route: RouteLocation }>;
 
@@ -45,24 +43,9 @@ export class Telemetry {
 			versionCli: string;
 		},
 	) {
-		if (!telemetrySettings.enabled || !telemetrySettings.config || this.rudderStack) return;
-
-		const {
-			config: { key, proxy, sourceConfig },
-		} = telemetrySettings;
-
-		const rootStore = useRootStore();
-
-		this.initRudderStack(key, proxy, {
-			integrations: { All: false },
-			loadIntegration: false,
-			configUrl: sourceConfig,
-		});
-
-		this.identify(instanceId, userId, versionCli, projectId);
-
-		this.flushPageEvents();
-		this.track('Session started', { session_id: rootStore.pushRef });
+		// In this fork, all frontend telemetry is disabled.
+		// Keep method signature for compatibility but do nothing.
+		return;
 	}
 
 	identify(instanceId: string, userId?: string, versionCli?: string, projectId?: string) {
@@ -92,54 +75,13 @@ export class Telemetry {
 	}
 
 	track(event: string, properties?: ITelemetryTrackProperties) {
-		if (!this.rudderStack) return;
-
-		const posthogSessionId = window.posthog?.get_session_id?.();
-
-		const updatedProperties = {
-			...properties,
-			version_cli: useRootStore().versionCli,
-			posthog_session_id: posthogSessionId,
-		};
-
-		this.rudderStack.track(event, updatedProperties, {
-			context: {
-				// provide a fake IP address to instruct RudderStack to not use the user's IP address
-				ip: '0.0.0.0',
-			},
-		});
-
-		usePostHog().capture(event, updatedProperties);
+		// No-op: telemetry tracking disabled
+		return;
 	}
 
 	page(route: RouteLocation) {
-		if (this.rudderStack) {
-			if (route.path === this.previousPath) {
-				// avoid duplicate requests query is changed for example on search page
-				return;
-			}
-			this.previousPath = route.path;
-
-			const pageName = String(route.name);
-			let properties: Record<string, unknown> = {};
-			if (route.meta?.telemetry && typeof route.meta.telemetry.getProperties === 'function') {
-				properties = route.meta.telemetry.getProperties(route);
-			}
-
-			properties.theme = useUIStore().appliedTheme;
-
-			const category = route.meta?.telemetry?.pageCategory || 'Editor';
-			this.rudderStack.page(category, pageName, properties, {
-				context: {
-					// provide a fake IP address to instruct RudderStack to not use the user's IP address
-					ip: '0.0.0.0',
-				},
-			});
-		} else {
-			this.pageEventQueue.push({
-				route,
-			});
-		}
+		// No-op: page tracking disabled
+		return;
 	}
 
 	reset() {
@@ -155,50 +97,20 @@ export class Telemetry {
 	}
 
 	trackAskAI(event: string, properties: IDataObject = {}) {
-		if (this.rudderStack) {
-			properties.session_id = useRootStore().pushRef;
-			properties.ndv_session_id = useNDVStore().pushRef;
-
-			switch (event) {
-				case 'askAi.generationFinished':
-					this.track('Ai code generation finished', properties);
-				default:
-					break;
-			}
-		}
+		// No-op
+		return;
 	}
 
 	trackAiTransform(event: string, properties: IDataObject = {}) {
-		if (this.rudderStack) {
-			properties.session_id = useRootStore().pushRef;
-			properties.ndv_session_id = useNDVStore().pushRef;
-
-			switch (event) {
-				case 'generationFinished':
-					this.track('Ai Transform code generation finished', properties);
-				default:
-					break;
-			}
-		}
+		// No-op
+		return;
 	}
 
 	// We currently do not support tracking directly from within node implementation
 	// so we are using this method as centralized way to track node parameters changes
 	trackNodeParametersValuesChange(nodeType: string, change: IUpdateInformation) {
-		if (this.rudderStack) {
-			const changeNameMap: { [key: string]: string } = {
-				[SLACK_NODE_TYPE]: 'parameters.otherOptions.includeLinkToWorkflow',
-				[MICROSOFT_TEAMS_NODE_TYPE]: 'parameters.options.includeLinkToWorkflow',
-				[TELEGRAM_NODE_TYPE]: 'parameters.additionalFields.appendAttribution',
-			};
-			const changeName = changeNameMap[nodeType] || APPEND_ATTRIBUTION_DEFAULT_PATH;
-			if (change.name === changeName) {
-				this.track('User toggled n8n reference option', {
-					node: nodeType,
-					toValue: change.value,
-				});
-			}
-		}
+		// No-op
+		return;
 	}
 
 	private initRudderStack(key: string, proxy: string, options: IDataObject) {

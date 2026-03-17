@@ -13,19 +13,6 @@ function onUpgradePlanClick() {
 </script>
 
 <template>
-	<BaseBanner custom-icon="info" theme="warning" name="TRIAL_OVER">
-		<template #mainContent>
-			<span>{{ locale.baseText('banners.trialOver.message') }}</span>
-		</template>
-		<template #trailingContent>
-			<N8nButton
-				class="n8n-button--success"
-				variant="solid"
-				icon="zap"
-				size="small"
-				@click="onUpgradePlanClick"
-				>{{ locale.baseText('generic.upgradeNow') }}</N8nButton
-			>
-		</template>
-	</BaseBanner>
+	<!-- In self-hosted fork we hide “trial over” cloud banner -->
+	<div />
 </template>

@@ -168,53 +168,8 @@ function onCtaClick() {
 </script>
 
 <template>
-	<BaseBanner
-		name="TRIAL"
-		theme="custom"
-		:dismissible="cloudPlanStore.bannerDismissible"
-		dismiss-permanently
-		:custom-icon="bannerIcon"
-	>
-		<template #mainContent>
-			<div :class="$style.content">
-				<span v-if="bannerTimeLeft.show">{{ messageText }}</span>
-				<div v-if="showExecutions" :class="$style.usageCounter">
-					<div :class="$style.progressBarDiv">
-						<progress
-							:class="[
-								trialHasExecutionsLeft ? $style.progressBarSuccess : $style.progressBarDanger,
-								$style.progressBar,
-							]"
-							:value="currentExecutionsWithThreshold"
-							:max="maxExecutions"
-						></progress>
-					</div>
-					<div :class="$style.executionsCountSection">
-						<N8nText size="xsmall" :color="trialHasExecutionsLeft ? 'text-dark' : 'danger'">
-							{{ currentExecutions }}/{{ maxExecutions }} </N8nText
-						>&nbsp;<N8nText
-							size="xsmall"
-							:color="trialHasExecutionsLeft ? 'text-dark' : 'danger'"
-							>{{ locale.baseText('executionUsage.label.executions') }}</N8nText
-						>
-					</div>
-				</div>
-			</div>
-		</template>
-		<template #trailingContent>
-			<div :class="$style.trailingContentWrapper">
-				<N8nButton
-					:variant="ctaVariant"
-					:style="ctaStyleOverrides"
-					:icon="bannerCta.icon"
-					:size="bannerCta.size"
-					@click="onCtaClick"
-				>
-					{{ bannerCta.text }}
-				</N8nButton>
-			</div>
-		</template>
-	</BaseBanner>
+	<!-- In self-hosted fork we hide cloud trial banner entirely -->
+	<div />
 </template>
 
 <style module lang="scss">
