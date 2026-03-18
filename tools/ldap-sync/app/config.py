@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     n8n_rest_prefix: str = "/rest"
     n8n_owner_email: str = ""
     n8n_owner_password: str = ""
+    # Throttle all n8n HTTP calls to avoid 429 Too Many Requests
+    n8n_min_request_interval_seconds: float = 1.0
+    # Retry settings for 429 responses
+    n8n_max_retries: int = 5
+    n8n_retry_delay_seconds: float = 5.0
 
     # LDAP
     ldap_url: str = "ldap://localhost:389"

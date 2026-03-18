@@ -48,15 +48,27 @@ def run_sync(settings: Settings) -> dict[str, int]:
     unblocked = 0
 
     # Create users that are in LDAP but not in n8n
-    for u in ldap_users:
-        if u["email"] in n8n_by_email:
-            continue
+    invitations: list[dict[str, str]] = [
+        {"email": u["email"], "role": u["role"]} for u in ldap_users if u["email"] not in n8n_by_email
+    ]
+    # Send invitations in batches to reduce request count
+    batch_size = 20
+    for i in range(0, len(invitations), batch_size):
+        batch = invitations[i : i + batch_size]
         try:
-            n8n.create_users([{"email": u["email"], "role": u["role"]}])
-            created += 1
-            logger.info("Created user %s with role %s", u["email"], u["role"])
+            n8n.create_users(batch)
+            created += len(batch)
+            logger.info("Created %s users (batch)", len(batch))
         except Exception as e:
-            logger.warning("Failed to create %s: %s", u["email"], e)
+            # Fall back to individual creates to isolate failures
+            logger.warning("Failed to create batch of %s users: %s", len(batch), e)
+            for inv in batch:
+                try:
+                    n8n.create_users([inv])
+                    created += 1
+                    logger.info("Created user %s with role %s", inv["email"], inv["role"])
+                except Exception as e2:
+                    logger.warning("Failed to create %s: %s", inv["email"], e2)
 
     # For each n8n user: if not in LDAP allowed list -> set ldapBlocked true; else set false
     # Never block global owner (they must always be able to log in)

@@ -4,6 +4,7 @@ n8n REST API client: login (session cookie), list users, create users via invita
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
 import httpx
@@ -18,10 +19,21 @@ class N8nClient:
         self.settings = settings
         self._base = settings.n8n_rest_url
         self._cookies: dict[str, str] = {}
+        self._last_request_at = 0.0
 
     def _url(self, path: str) -> str:
         path = path.lstrip("/")
         return f"{self._base}/{path}"
+
+    def _throttle(self) -> None:
+        interval = float(self.settings.n8n_min_request_interval_seconds)
+        if interval <= 0:
+            return
+        now = time.monotonic()
+        wait_for = self._last_request_at + interval - now
+        if wait_for > 0:
+            time.sleep(wait_for)
+        self._last_request_at = time.monotonic()
 
     def login(self) -> bool:
         """Log in as owner; store session cookie for subsequent requests."""
@@ -32,6 +44,7 @@ class N8nClient:
         }
         try:
             with httpx.Client(timeout=15.0, follow_redirects=True) as client:
+                self._throttle()
                 r = client.post(url, json=payload)
                 r.raise_for_status()
                 # n8n sets session cookie in response
@@ -56,9 +69,27 @@ class N8nClient:
         params: dict[str, Any] | None = None,
     ) -> httpx.Response:
         url = self._url(path)
-        with httpx.Client(timeout=30.0, follow_redirects=True, cookies=self._cookies) as client:
-            r = client.request(method, url, json=json, params=params or {})
-            return r
+        retries = int(self.settings.n8n_max_retries)
+        delay = float(self.settings.n8n_retry_delay_seconds)
+        attempt = 0
+        while True:
+            with httpx.Client(timeout=30.0, follow_redirects=True, cookies=self._cookies) as client:
+                self._throttle()
+                r = client.request(method, url, json=json, params=params or {})
+
+            if r.status_code != 429:
+                return r
+
+            attempt += 1
+            if attempt > retries:
+                return r
+            logger.warning(
+                "n8n rate-limited (429). Waiting %.1fs and retrying (attempt %s/%s)",
+                delay,
+                attempt,
+                retries,
+            )
+            time.sleep(delay)
 
     def list_users(self) -> list[dict[str, Any]]:
         """GET /users; returns list of users (items with id, email, role, settings, ...)."""
