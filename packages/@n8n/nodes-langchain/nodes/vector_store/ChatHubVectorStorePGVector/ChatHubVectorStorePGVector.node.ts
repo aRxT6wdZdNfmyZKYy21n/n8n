@@ -12,7 +12,7 @@ import type {
 	INodeProperties,
 	NodeParameterValueType,
 } from 'n8n-workflow';
-import { jsonParse } from 'n8n-workflow';
+import { jsonParse, NodeOperationError } from 'n8n-workflow';
 import { getUserScopedSlot } from '../shared/userScoped';
 import { ExtendedPGVectorStore } from '../VectorStorePGVector/VectorStorePGVector.node';
 import {
@@ -51,6 +51,9 @@ async function deleteDocuments(
 
 	const pgConf = await configurePostgres.call(this, credentials as PostgresNodeCredentials);
 	const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
+	if (!pool) {
+		throw new NodeOperationError(this.getNode(), 'Postgres connection pool not available');
+	}
 
 	if (!filter || Object.keys(filter).length === 0) {
 		// The table is user-scoped (one table per user), so dropping it is safe
@@ -95,6 +98,9 @@ async function chatHubVectorStorePGVectorApiConnectionTest(
 	try {
 		const pgConf = await configurePostgres.call(this, credentials as PostgresNodeCredentials);
 		const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
+		if (!pool) {
+			throw new NodeOperationError(this.getNode(), 'Postgres connection pool not available');
+		}
 		const result = await pool.query<{ exists: boolean }>(
 			"SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector') AS exists",
 		);
