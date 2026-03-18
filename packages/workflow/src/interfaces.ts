@@ -3443,6 +3443,8 @@ export interface IUserSettings {
 	easyAIWorkflowOnboarded?: boolean;
 	userClaimedAiCredits?: boolean;
 	dismissedCallouts?: Record<string, boolean>;
+	/** When true, login is rejected. Used by external ldap-sync to block users who lost AD group membership. */
+	ldapBlocked?: boolean;
 }
 
 export interface IProcessedDataConfig {

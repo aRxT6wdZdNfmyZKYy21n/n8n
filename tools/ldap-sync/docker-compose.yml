@@ -1,0 +1,8 @@
+# Example: run ldap-sync next to n8n. Copy .env.example to .env and set N8N_* and LDAP_*.
+services:
+  ldap-sync:
+    build: .
+    env_file: .env
+    restart: unless-stopped
+    # Ensure n8n is reachable (same compose network or link)
+    # extra_hosts or network_mode as needed for your setup

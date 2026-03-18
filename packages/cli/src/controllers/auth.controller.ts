@@ -90,6 +90,10 @@ export class AuthController {
 			preliminaryUser,
 		);
 
+		if (user.settings?.ldapBlocked === true) {
+			throw new AuthError('Access denied. Your account is currently blocked.');
+		}
+
 		await this.validateMfa(user, mfaCode, mfaRecoveryCode);
 
 		this.authService.issueCookie(res, user, user.mfaEnabled, req.browserId);
