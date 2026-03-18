@@ -64,6 +64,9 @@ export function getDateRangesSelectQuery({
 	const prevStartStr = prevStartDateTime.toSQL({ includeZone: false, includeOffset: false });
 	const startStr = startDateTime.toSQL({ includeZone: false, includeOffset: false });
 	const endStr = endDateTime.toSQL({ includeZone: false, includeOffset: false });
+	if (!prevStartStr || !startStr || !endStr) {
+		throw new Error('Failed to format date range for insights query');
+	}
 
 	// Database-specific timestamp casting
 	// PostgreSQL requires explicit CAST or :: syntax for timestamp comparisons
