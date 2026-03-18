@@ -249,10 +249,13 @@ export function getQuery(options: IDataObject, sobject: string, returnAll: boole
  */
 export function getPollStartDate(lastTimeChecked: string | undefined): string {
 	if (!lastTimeChecked) {
-		return DateTime.now().toISO();
+		return DateTime.now().toISO() ?? new Date().toISOString();
 	}
 	const safetyMarginMinutes = 15;
-	return DateTime.fromISO(lastTimeChecked).minus({ minutes: safetyMarginMinutes }).toISO();
+	return (
+		DateTime.fromISO(lastTimeChecked).minus({ minutes: safetyMarginMinutes }).toISO() ??
+		new Date().toISOString()
+	);
 }
 
 /**

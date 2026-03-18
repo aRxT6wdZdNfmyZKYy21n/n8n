@@ -291,7 +291,7 @@ export const prepareTimestamp = (
 	label: 'after' | 'before',
 ) => {
 	if (dateValue instanceof DateTime) {
-		dateValue = dateValue.toISO();
+		dateValue = dateValue.toISO() ?? '';
 	}
 
 	let timestamp = DateTime.fromISO(dateValue as string).toSeconds();
@@ -315,6 +315,14 @@ export const prepareTimestamp = (
 
 	if (!timestamp) {
 		timestamp = Math.floor(DateTime.fromMillis(parseInt(dateValue as string, 10)).toSeconds());
+	}
+
+	if (!timestamp) {
+		throw new NodeOperationError(
+			node,
+			`Invalid ${label} date value "${String(dateValue)}" for query "${query}"`,
+			{ itemIndex },
+		);
 	}
 
 	if (!timestamp) {
