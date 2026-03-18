@@ -99,7 +99,7 @@ async function chatHubVectorStorePGVectorApiConnectionTest(
 		const pgConf = await configurePostgres.call(this, credentials as PostgresNodeCredentials);
 		const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
 		if (!pool) {
-			throw new NodeOperationError(this.getNode(), 'Postgres connection pool not available');
+			throw new Error('Postgres connection pool not available');
 		}
 		const result = await pool.query<{ exists: boolean }>(
 			"SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector') AS exists",
