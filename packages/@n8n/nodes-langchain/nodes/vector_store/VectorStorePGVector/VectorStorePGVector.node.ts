@@ -7,7 +7,6 @@ import type { EmbeddingsInterface } from '@langchain/core/embeddings';
 import { configurePostgres } from 'n8n-nodes-base/dist/nodes/Postgres/transport/index';
 import type { PostgresNodeCredentials } from 'n8n-nodes-base/dist/nodes/Postgres/v2/helpers/interfaces';
 import type { INodeProperties } from 'n8n-workflow';
-import type pg from 'pg';
 
 import { metadataFilterField, createVectorStoreNode } from '@n8n/ai-utilities';
 
@@ -238,7 +237,7 @@ export class VectorStorePGVector extends createVectorStoreNode<ExtendedPGVectorS
 		}) as string;
 		const credentials = await context.getCredentials('postgres');
 		const pgConf = await configurePostgres.call(context, credentials as PostgresNodeCredentials);
-		const pool = pgConf.db.$pool as unknown as pg.Pool;
+		const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
 
 		const config: PGVectorStoreArgs = {
 			pool,
@@ -281,7 +280,7 @@ export class VectorStorePGVector extends createVectorStoreNode<ExtendedPGVectorS
 		}) as string;
 		const credentials = await context.getCredentials('postgres');
 		const pgConf = await configurePostgres.call(context, credentials as PostgresNodeCredentials);
-		const pool = pgConf.db.$pool as unknown as pg.Pool;
+		const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
 
 		const config: PGVectorStoreArgs = {
 			pool,

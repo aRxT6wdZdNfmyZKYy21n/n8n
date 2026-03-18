@@ -13,7 +13,6 @@ import type {
 	NodeParameterValueType,
 } from 'n8n-workflow';
 import { jsonParse } from 'n8n-workflow';
-import type pg from 'pg';
 import { getUserScopedSlot } from '../shared/userScoped';
 import { ExtendedPGVectorStore } from '../VectorStorePGVector/VectorStorePGVector.node';
 import {
@@ -51,7 +50,7 @@ async function deleteDocuments(
 	const tableName = getUserScopedSlot(this, credentials.tableNamePrefix);
 
 	const pgConf = await configurePostgres.call(this, credentials as PostgresNodeCredentials);
-	const pool = pgConf.db.$pool as unknown as pg.Pool;
+	const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
 
 	if (!filter || Object.keys(filter).length === 0) {
 		// The table is user-scoped (one table per user), so dropping it is safe
@@ -95,7 +94,7 @@ async function chatHubVectorStorePGVectorApiConnectionTest(
 
 	try {
 		const pgConf = await configurePostgres.call(this, credentials as PostgresNodeCredentials);
-		const pool = pgConf.db.$pool as unknown as pg.Pool;
+		const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
 		const result = await pool.query<{ exists: boolean }>(
 			"SELECT EXISTS(SELECT 1 FROM pg_extension WHERE extname = 'vector') AS exists",
 		);
@@ -148,7 +147,7 @@ export class ChatHubVectorStorePGVector extends createVectorStoreNode({
 		);
 		const tableName = getUserScopedSlot(context, credentials.tableNamePrefix, itemIndex);
 		const pgConf = await configurePostgres.call(context, credentials as PostgresNodeCredentials);
-		const pool = pgConf.db.$pool as unknown as pg.Pool;
+		const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
 
 		const config: PGVectorStoreArgs = {
 			pool,
@@ -176,7 +175,7 @@ export class ChatHubVectorStorePGVector extends createVectorStoreNode({
 		);
 		const tableName = getUserScopedSlot(context, credentials.tableNamePrefix, itemIndex);
 		const pgConf = await configurePostgres.call(context, credentials as PostgresNodeCredentials);
-		const pool = pgConf.db.$pool as unknown as pg.Pool;
+		const pool = pgConf.db.$pool as unknown as PGVectorStoreArgs['pool'];
 
 		const config: PGVectorStoreArgs = {
 			pool,

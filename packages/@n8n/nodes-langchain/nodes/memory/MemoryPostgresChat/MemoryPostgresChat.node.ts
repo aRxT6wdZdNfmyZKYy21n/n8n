@@ -10,7 +10,6 @@ import type {
 	SupplyData,
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
-import type pg from 'pg';
 
 import { getSessionId } from '@utils/helpers';
 import { logWrapper, getConnectionHintNoticeField } from '@n8n/ai-utilities';
@@ -91,7 +90,8 @@ export class MemoryPostgresChat implements INodeType {
 		const sessionId = getSessionId(this, itemIndex);
 
 		const pgConf = await configurePostgres.call(this, credentials);
-		const pool = pgConf.db.$pool as unknown as pg.Pool;
+		type PoolType = ConstructorParameters<typeof PostgresChatMessageHistory>[0]['pool'];
+		const pool = pgConf.db.$pool as unknown as PoolType;
 
 		const pgChatHistory = new PostgresChatMessageHistory({
 			pool,
