@@ -7,7 +7,7 @@ import {
 	LRLanguage,
 } from '@codemirror/language';
 import type { Extension } from '@codemirror/state';
-import { parseMixed, type SyntaxNode } from '@lezer/common';
+import { parseMixed, type Input, type SyntaxNodeRef } from '@lezer/common';
 import { styleTags, tags as t } from '@lezer/highlight';
 import { expressionParser } from '@n8n/codemirror-lang';
 
@@ -73,11 +73,11 @@ export const getParser = (dialect: Dialect) => {
 	});
 
 	const mixedParser = expressionParser.configure({
-		wrap: parseMixed((node: SyntaxNode) => {
+		wrap: parseMixed((node: SyntaxNodeRef, _input: Input) => {
 			return node.type.isTop
 				? {
 						parser: sqlLanguage.parser,
-						overlay: (node: SyntaxNode) => node.type.name === 'Plaintext',
+						overlay: (node: SyntaxNodeRef) => node.type.name === 'Plaintext',
 					}
 				: null;
 		}),
