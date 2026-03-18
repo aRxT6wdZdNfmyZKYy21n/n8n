@@ -27,7 +27,7 @@ Copy `.env.example` to `.env` and set:
 - **N8N_BASE_URL** – e.g. `http://n8n:5678`
 - **N8N_REST_PREFIX** – usually `/rest`
 - **N8N_OWNER_EMAIL** / **N8N_OWNER_PASSWORD** – owner credentials; ldap-sync logs in and uses the session cookie for API calls.
-- **LDAP_*** – LDAP server URL, bind DN/password, base DN, group filters (see `.env.example`).
+- **LDAP_*** – LDAP server URL, bind DN/password, base DN, group filters (see `.env.example`). Note: `LDAP_GROUPS` is **semicolon-separated** because AD group DNs contain commas.
 - **GROUP_ROLE_MAP** – JSON mapping AD group names to n8n roles, e.g. `{"n8n-users": "global:member", "n8n-admins": "global:admin"}`.
 - **SYNC_INTERVAL_SECONDS** – how often to run the sync (default 300).
 

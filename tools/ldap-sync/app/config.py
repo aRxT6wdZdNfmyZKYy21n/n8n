@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     ldap_bind_dn: str = ""
     ldap_bind_password: str = ""
     ldap_base_dn: str = ""
-    ldap_groups: str = ""  # comma-separated group DNs or names
+    # Use semicolon-separated values since AD group DNs contain commas.
+    # Example: "CN=n8n_users,OU=Groups,DC=company,DC=com;CN=n8n_admins,OU=Groups,DC=company,DC=com"
+    ldap_groups: str = ""
     ldap_user_filter: str = "(objectClass=user)"
 
     # group DN or name -> n8n role slug
@@ -42,7 +44,11 @@ class Settings(BaseSettings):
 
     @property
     def ldap_group_list(self) -> list[str]:
-        return [g.strip() for g in self.ldap_groups.split(",") if g.strip()]
+        raw = self.ldap_groups.strip()
+        if not raw:
+            return []
+        # Use ';' as delimiter (safe for DNs which contain commas).
+        return [g.strip() for g in raw.split(";") if g.strip()]
 
     @property
     def n8n_rest_url(self) -> str:
