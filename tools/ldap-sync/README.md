@@ -32,6 +32,7 @@ Copy `.env.example` to `.env` and set:
 - **TRUSTED_AUTH_TOKEN_TTL_SECONDS** – trusted token lifetime (default `60` seconds).
 - **N8N_MIN_REQUEST_INTERVAL_SECONDS** – throttle n8n requests (default `1.0`).
 - **N8N_RETRY_DELAY_SECONDS** – wait time after HTTP 429 before retry (default `5.0`).
+- **LDAP_SYNC_CREATE_USERS** – if `true`, missing users are created via `/rest/invitations`; default `false`. For trusted-login deployments keep it `false`.
 - **LDAP_*** – LDAP server URL, bind DN/password, base DN, group filters (see `.env.example`). Note: `LDAP_GROUPS` is **semicolon-separated** because AD group DNs contain commas.
 - **GROUP_ROLE_MAP** – JSON mapping AD group names to n8n roles, e.g. `{"n8n-users": "global:member", "n8n-admins": "global:admin"}`.
 - **SYNC_INTERVAL_SECONDS** – how often to run the sync (default 300).

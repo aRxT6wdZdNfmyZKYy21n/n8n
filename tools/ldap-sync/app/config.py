@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Retry settings for 429 responses
     n8n_max_retries: int = 5
     n8n_retry_delay_seconds: float = 5.0
+    # Create missing users via /rest/invitations.
+    # For trusted-login flow this is usually not needed.
+    ldap_sync_create_users: bool = False
 
     # LDAP
     ldap_url: str = "ldap://localhost:389"
