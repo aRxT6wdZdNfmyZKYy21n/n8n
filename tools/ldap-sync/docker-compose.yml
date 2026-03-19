@@ -4,5 +4,7 @@ services:
     build: .
     env_file: .env
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
     # Ensure n8n is reachable (same compose network or link)
     # extra_hosts or network_mode as needed for your setup

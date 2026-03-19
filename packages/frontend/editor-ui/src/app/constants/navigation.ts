@@ -16,6 +16,7 @@ export const enum VIEWS {
 	TEMPLATE_IMPORT = 'WorkflowTemplate',
 	WORKFLOW_ONBOARDING = 'WorkflowOnboarding',
 	SIGNIN = 'SigninView',
+	SSO_LOGIN = 'SsoLoginView',
 	SIGNUP = 'SignupView',
 	SIGNOUT = 'SignoutView',
 	SETUP = 'SetupView',

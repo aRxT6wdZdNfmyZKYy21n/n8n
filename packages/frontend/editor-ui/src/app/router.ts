@@ -47,6 +47,7 @@ const SettingsLdapView = async () =>
 	await import('@/features/settings/sso/views/SettingsLdapView.vue');
 const SettingsPersonalView = async () =>
 	await import('@/features/core/auth/views/SettingsPersonalView.vue');
+const SsoLoginView = async () => await import('@/features/core/auth/views/SsoLoginView.vue');
 const SettingsUsersView = async () =>
 	await import('@/features/settings/users/views/SettingsUsersView.vue');
 const SettingsResolversView = async () => await import('@/features/resolvers/ResolversView.vue');
@@ -440,6 +441,18 @@ export const routes: RouteRecordRaw[] = [
 		path: '/signin',
 		name: VIEWS.SIGNIN,
 		component: SigninView,
+		meta: {
+			layout: 'auth',
+			telemetry: {
+				pageCategory: 'auth',
+			},
+			middleware: ['guest'],
+		},
+	},
+	{
+		path: '/sso/login',
+		name: VIEWS.SSO_LOGIN,
+		component: SsoLoginView,
 		meta: {
 			layout: 'auth',
 			telemetry: {
