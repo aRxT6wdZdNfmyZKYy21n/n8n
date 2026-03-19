@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     n8n_rest_prefix: str = "/rest"
     n8n_owner_email: str = ""
     n8n_owner_password: str = ""
+    n8n_trusted_login_path: str = "/rest/internal/auth/trusted-login"
+    trusted_auth_secret: str = ""
+    trusted_auth_token_ttl_seconds: int = 60
     # Throttle all n8n HTTP calls to avoid 429 Too Many Requests
     n8n_min_request_interval_seconds: float = 1.0
     # Retry settings for 429 responses

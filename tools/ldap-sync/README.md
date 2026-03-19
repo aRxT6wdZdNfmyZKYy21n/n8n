@@ -27,6 +27,9 @@ Copy `.env.example` to `.env` and set:
 - **N8N_BASE_URL** – e.g. `http://n8n:5678`
 - **N8N_REST_PREFIX** – usually `/rest`
 - **N8N_OWNER_EMAIL** / **N8N_OWNER_PASSWORD** – owner credentials; ldap-sync logs in and uses the session cookie for API calls.
+- **N8N_TRUSTED_LOGIN_PATH** – trusted-login endpoint path in n8n (default `/rest/internal/auth/trusted-login`).
+- **TRUSTED_AUTH_SECRET** – shared HS256 secret used by FastAPI to sign trusted-login JWT and by n8n to verify it.
+- **TRUSTED_AUTH_TOKEN_TTL_SECONDS** – trusted token lifetime (default `60` seconds).
 - **N8N_MIN_REQUEST_INTERVAL_SECONDS** – throttle n8n requests (default `1.0`).
 - **N8N_RETRY_DELAY_SECONDS** – wait time after HTTP 429 before retry (default `5.0`).
 - **LDAP_*** – LDAP server URL, bind DN/password, base DN, group filters (see `.env.example`). Note: `LDAP_GROUPS` is **semicolon-separated** because AD group DNs contain commas.
@@ -45,6 +48,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8080
 
 - Health: `GET http://localhost:8080/health`
 - Trigger sync once: `POST http://localhost:8080/sync` (optional; sync also runs on a timer).
+- AD login and trusted redirect URL: `POST http://localhost:8080/auth/login` with JSON `{ "login": "...", "password": "...", "redirect": "/" }`.
 
 ### Docker
 

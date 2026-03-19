@@ -5,9 +5,15 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any
 
+import jwt
 from fastapi import FastAPI
+from pydantic import BaseModel
+from uuid import uuid4
+from datetime import datetime, timedelta, timezone
+from urllib.parse import quote_plus
 
 from app.config import Settings
+from app.ldap_client import authenticate_ldap_user
 from app.sync import run_sync
 
 logging.basicConfig(level=logging.INFO)
@@ -48,6 +54,12 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="ldap-sync", lifespan=lifespan)
 
 
+class LoginRequest(BaseModel):
+    login: str
+    password: str
+    redirect: str | None = "/"
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
@@ -67,3 +79,33 @@ def trigger_sync() -> dict[str, str]:
 
     asyncio.create_task(_run())
     return {"status": "sync triggered"}
+
+
+@app.post("/auth/login")
+def auth_login(payload: LoginRequest) -> dict[str, str]:
+    if not settings.trusted_auth_secret:
+        return {"status": "error", "message": "trusted_auth_secret is not configured"}
+
+    user = authenticate_ldap_user(settings, payload.login, payload.password)
+    if not user:
+        return {"status": "error", "message": "Invalid credentials"}
+
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(seconds=settings.trusted_auth_token_ttl_seconds)
+    token_payload = {
+        "sub": user["email"],
+        "email": user["email"],
+        "firstName": user.get("firstName"),
+        "lastName": user.get("lastName"),
+        "groups": user.get("groups", []),
+        "jti": str(uuid4()),
+        "iat": int(now.timestamp()),
+        "exp": int(exp.timestamp()),
+    }
+    token = jwt.encode(token_payload, settings.trusted_auth_secret, algorithm="HS256")
+
+    base = settings.n8n_base_url.rstrip("/")
+    path = settings.n8n_trusted_login_path
+    redirect = payload.redirect or "/"
+    url = f"{base}{path}?token={quote_plus(token)}&redirect={quote_plus(redirect)}"
+    return {"status": "ok", "redirectUrl": url}

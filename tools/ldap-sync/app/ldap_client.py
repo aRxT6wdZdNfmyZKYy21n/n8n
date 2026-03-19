@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from ldap3 import ALL, Connection, Server, SUBTREE
+from ldap3.utils.conv import escape_filter_chars
 
 from app.config import Settings
 
@@ -88,3 +89,79 @@ def get_ldap_users_and_roles(settings: Settings) -> list[dict[str, Any]]:
         return [{"email": email, "role": role} for email, role in user_emails.items()]
     finally:
         conn.unbind()
+
+
+def authenticate_ldap_user(
+    settings: Settings, login: str, password: str
+) -> dict[str, Any] | None:
+    """
+    Validate user credentials against AD/LDAP.
+    Returns basic profile and groups on success, else None.
+    """
+    if not login or not password:
+        return None
+
+    server = Server(settings.ldap_url, get_info=ALL)
+    try:
+        # 1) Search user DN via service account
+        search_conn = Connection(
+            server,
+            user=settings.ldap_bind_dn,
+            password=settings.ldap_bind_password,
+            auto_bind=True,
+        )
+    except Exception as e:
+        logger.exception("LDAP service bind failed: %s", e)
+        return None
+
+    try:
+        escaped = escape_filter_chars(login)
+        user_filter = (
+            f"(&{settings.ldap_user_filter}"
+            f"(|(mail={escaped})(userPrincipalName={escaped})(sAMAccountName={escaped})))"
+        )
+        search_conn.search(
+            settings.ldap_base_dn,
+            user_filter,
+            SUBTREE,
+            attributes=["mail", "userPrincipalName", "givenName", "sn", "memberOf"],
+        )
+        if not search_conn.entries:
+            return None
+
+        entry = search_conn.entries[0]
+        user_dn = entry.entry_dn
+        groups = []
+        member_of = getattr(entry, "memberOf", None)
+        if member_of is not None:
+            groups = [str(x) for x in (member_of.values if hasattr(member_of, "values") else member_of)]
+
+        # 2) Verify user password by binding as user
+        try:
+            user_conn = Connection(server, user=user_dn, password=password, auto_bind=True)
+            user_conn.unbind()
+        except Exception:
+            return None
+
+        def _get_attr(attr: str) -> str | None:
+            val = getattr(entry, attr, None)
+            if val is None:
+                return None
+            if hasattr(val, "value"):
+                val = val.value
+            if isinstance(val, list):
+                val = val[0] if val else None
+            return str(val).strip() if val else None
+
+        email = _get_attr("mail") or _get_attr("userPrincipalName")
+        if not email:
+            return None
+
+        return {
+            "email": email.lower(),
+            "firstName": _get_attr("givenName"),
+            "lastName": _get_attr("sn"),
+            "groups": groups,
+        }
+    finally:
+        search_conn.unbind()

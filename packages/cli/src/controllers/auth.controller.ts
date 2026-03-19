@@ -2,7 +2,12 @@ import { LoginRequestDto, ResolveSignupTokenQueryDto } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
 import { Time } from '@n8n/constants';
 import type { User, PublicUser, AuthProviderType } from '@n8n/db';
-import { UserRepository, AuthenticatedRequest, GLOBAL_OWNER_ROLE } from '@n8n/db';
+import {
+	UserRepository,
+	AuthenticatedRequest,
+	GLOBAL_MEMBER_ROLE,
+	GLOBAL_OWNER_ROLE,
+} from '@n8n/db';
 import {
 	Body,
 	createBodyKeyedRateLimiter,
@@ -13,6 +18,8 @@ import {
 } from '@n8n/decorators';
 import { isEmail } from 'class-validator';
 import { Response } from 'express';
+import { randomUUID } from 'node:crypto';
+import { verify, type JwtPayload } from 'jsonwebtoken';
 
 import { AuthHandlerRegistry } from '@/auth/auth-handler.registry';
 import { AuthService } from '@/auth/auth.service';
@@ -26,6 +33,7 @@ import { License } from '@/license';
 import { MfaService } from '@/mfa/mfa.service';
 import { PostHogClient } from '@/posthog';
 import { AuthlessRequest } from '@/requests';
+import { PasswordUtility } from '@/services/password.utility';
 import { UserService } from '@/services/user.service';
 import {
 	getCurrentAuthenticationMethod,
@@ -37,11 +45,14 @@ import '../auth/handlers/email.auth-handler';
 
 @RestController()
 export class AuthController {
+	private readonly trustedAuthUsedJtis = new Map<string, number>();
+
 	constructor(
 		private readonly logger: Logger,
 		private readonly authService: AuthService,
 		private readonly mfaService: MfaService,
 		private readonly userService: UserService,
+		private readonly passwordUtility: PasswordUtility,
 		private readonly license: License,
 		private readonly userRepository: UserRepository,
 		private readonly eventService: EventService,
@@ -93,6 +104,9 @@ export class AuthController {
 		if (user.settings?.ldapBlocked === true) {
 			throw new AuthError('Access denied. Your account is currently blocked.');
 		}
+		if (this.isTrustedAuthEnabled() && user.role.slug !== GLOBAL_OWNER_ROLE.slug) {
+			throw new AuthError('Password login is disabled. Please use company login.');
+		}
 
 		await this.validateMfa(user, mfaCode, mfaRecoveryCode);
 
@@ -108,6 +122,46 @@ export class AuthController {
 			withScopes: true,
 			mfaAuthenticated: user.mfaEnabled,
 		});
+	}
+
+	@Get('/internal/auth/trusted-login', { skipAuth: true })
+	async trustedLogin(
+		req: AuthlessRequest,
+		res: Response,
+		@Query payload: { token?: string; redirect?: string },
+	) {
+		if (!this.isTrustedAuthEnabled()) {
+			throw new ForbiddenError('Trusted auth is not enabled');
+		}
+
+		const token = payload.token;
+		if (!token) {
+			throw new BadRequestError('Missing trusted login token');
+		}
+
+		const claims = this.verifyTrustedToken(token);
+		this.consumeTrustedJti(claims.jti, claims.exp);
+
+		const role = this.resolveRoleFromGroups(claims.groups);
+		if (!role) {
+			throw new ForbiddenError('User is not in any allowed group');
+		}
+
+		const user = await this.upsertTrustedUser({
+			email: claims.email,
+			firstName: claims.firstName,
+			lastName: claims.lastName,
+			role,
+		});
+
+		this.authService.issueCookie(res, user, true, req.browserId);
+		this.eventService.emit('user-logged-in', {
+			user,
+			authenticationMethod: 'ldap',
+		});
+
+		const redirect = payload.redirect ?? '/';
+		res.redirect(redirect);
 	}
 
 	private validateEmailFormat(authMethod: AuthProviderType, emailOrLdapLoginId: string): void {
@@ -271,5 +325,137 @@ export class AuthController {
 		await this.authService.invalidateToken(req);
 		this.authService.clearCookie(res);
 		return { loggedOut: true };
+	}
+
+	private isTrustedAuthEnabled() {
+		return process.env.N8N_TRUSTED_AUTH_ENABLED === 'true';
+	}
+
+	private getTrustedAuthSecret() {
+		const secret = process.env.N8N_TRUSTED_AUTH_SECRET;
+		if (!secret) {
+			throw new InternalServerError('N8N_TRUSTED_AUTH_SECRET is not configured');
+		}
+		return secret;
+	}
+
+	private verifyTrustedToken(token: string): {
+		email: string;
+		firstName?: string;
+		lastName?: string;
+		groups: string[];
+		jti: string;
+		exp: number;
+	} {
+		let decoded: string | JwtPayload;
+		try {
+			decoded = verify(token, this.getTrustedAuthSecret(), { algorithms: ['HS256'] });
+		} catch {
+			throw new ForbiddenError('Invalid trusted login token');
+		}
+		if (typeof decoded === 'string') {
+			throw new ForbiddenError('Invalid trusted login token payload');
+		}
+
+		const email =
+			typeof decoded.email === 'string'
+				? decoded.email
+				: typeof decoded.sub === 'string'
+					? decoded.sub
+					: undefined;
+		const jti = typeof decoded.jti === 'string' ? decoded.jti : undefined;
+		const exp = typeof decoded.exp === 'number' ? decoded.exp : undefined;
+		const groups =
+			Array.isArray(decoded.groups) && decoded.groups.every((g) => typeof g === 'string')
+				? (decoded.groups as string[])
+				: [];
+
+		if (!email || !jti || !exp) {
+			throw new ForbiddenError('Invalid trusted login token claims');
+		}
+
+		return {
+			email: email.toLowerCase(),
+			firstName: typeof decoded.firstName === 'string' ? decoded.firstName : undefined,
+			lastName: typeof decoded.lastName === 'string' ? decoded.lastName : undefined,
+			groups,
+			jti,
+			exp,
+		};
+	}
+
+	private consumeTrustedJti(jti: string, expSeconds: number) {
+		const now = Date.now();
+		for (const [key, expiresAt] of this.trustedAuthUsedJtis.entries()) {
+			if (expiresAt <= now) this.trustedAuthUsedJtis.delete(key);
+		}
+
+		if (this.trustedAuthUsedJtis.has(jti)) {
+			throw new ForbiddenError('Trusted login token replay detected');
+		}
+		this.trustedAuthUsedJtis.set(jti, expSeconds * 1000);
+	}
+
+	private resolveRoleFromGroups(groups: string[]): 'global:member' | 'global:admin' | null {
+		const rawMap = process.env.N8N_TRUSTED_AUTH_GROUP_ROLE_MAP;
+		const groupRoleMap = rawMap
+			? (JSON.parse(rawMap) as Record<string, string>)
+			: {
+					n8n_users: 'global:member',
+					n8n_admins: 'global:admin',
+				};
+
+		const normalizedGroups = new Set<string>();
+		for (const g of groups) {
+			const lower = g.toLowerCase().trim();
+			normalizedGroups.add(lower);
+			const match = /cn=([^,]+)/i.exec(g);
+			if (match?.[1]) normalizedGroups.add(match[1].toLowerCase().trim());
+		}
+
+		let resolved: 'global:member' | 'global:admin' | null = null;
+		for (const [groupName, role] of Object.entries(groupRoleMap)) {
+			if (!normalizedGroups.has(groupName.toLowerCase().trim())) continue;
+			if (role === 'global:admin') return 'global:admin';
+			if (role === 'global:member') resolved = 'global:member';
+		}
+		return resolved;
+	}
+
+	private async upsertTrustedUser(params: {
+		email: string;
+		firstName?: string;
+		lastName?: string;
+		role: 'global:member' | 'global:admin';
+	}) {
+		const { email, firstName, lastName, role } = params;
+		const existing = await this.userRepository.findOne({
+			where: { email },
+			relations: ['role'],
+		});
+
+		if (!existing) {
+			const randomPassword = await this.passwordUtility.hash(randomUUID());
+			const { user } = await this.userRepository.createUserWithProject({
+				email,
+				firstName,
+				lastName,
+				password: randomPassword,
+				role: { slug: role },
+				settings: { ldapBlocked: false },
+			});
+			return user;
+		}
+
+		if (existing.role.slug !== GLOBAL_OWNER_ROLE.slug && existing.role.slug !== role) {
+			existing.role = { ...GLOBAL_MEMBER_ROLE, slug: role };
+		}
+		existing.firstName = firstName ?? existing.firstName;
+		existing.lastName = lastName ?? existing.lastName;
+		existing.settings = {
+			...(existing.settings ?? {}),
+			ldapBlocked: false,
+		};
+		return await this.userRepository.save(existing);
 	}
 }
