@@ -24,7 +24,8 @@ External service that syncs users and group membership from Active Directory (or
 
 Copy `.env.example` to `.env` and set:
 
-- **N8N_BASE_URL** – e.g. `http://n8n:5678`
+- **N8N_API_BASE_URL** – base URL для sync/login API вызовов (host owner), например `http://n8n-owner:5678`
+- **N8N_WEB_BASE_URL** – overrides only for browser redirect URLs, typically `http://n8n:5678`
 - **N8N_REST_PREFIX** – usually `/rest`
 - **N8N_OWNER_EMAIL** / **N8N_OWNER_PASSWORD** – owner credentials; ldap-sync logs in and uses the session cookie for API calls.
 - **N8N_TRUSTED_LOGIN_PATH** – trusted-login endpoint path in n8n (default `/rest/internal/auth/trusted-login`).

@@ -104,7 +104,7 @@ def auth_login(payload: LoginRequest) -> dict[str, str]:
     }
     token = jwt.encode(token_payload, settings.trusted_auth_secret, algorithm="HS256")
 
-    base = settings.n8n_base_url.rstrip("/")
+    base = settings.n8n_resolved_web_base_url
     path = settings.n8n_trusted_login_path
     redirect = payload.redirect or "/"
     url = f"{base}{path}?token={quote_plus(token)}&redirect={quote_plus(redirect)}"

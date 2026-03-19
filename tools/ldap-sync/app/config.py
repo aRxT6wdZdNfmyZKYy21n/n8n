@@ -11,7 +11,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # n8n
-    n8n_base_url: str = "http://localhost:5678"
+    # Separate bases:
+    # - WEB base is used to build redirect URLs for the browser
+    # - API base is used for sync/login requests (needs owner host because /rest/login is restricted on user host)
+    n8n_api_base_url: str = ""
+    n8n_web_base_url: str = ""
     n8n_rest_prefix: str = "/rest"
     n8n_owner_email: str = ""
     n8n_owner_password: str = ""
@@ -62,7 +66,21 @@ class Settings(BaseSettings):
         return [g.strip() for g in raw.split(";") if g.strip()]
 
     @property
+    def n8n_resolved_api_base_url(self) -> str:
+        base = self.n8n_api_base_url.strip()
+        if not base:
+            raise ValueError("N8N_API_BASE_URL is required (used for sync/login API calls to n8n owner host).")
+        return base.rstrip("/")
+
+    @property
+    def n8n_resolved_web_base_url(self) -> str:
+        base = self.n8n_web_base_url.strip()
+        if not base:
+            raise ValueError("N8N_WEB_BASE_URL is required (used for building redirect URLs in the browser flow).")
+        return base.rstrip("/")
+
+    @property
     def n8n_rest_url(self) -> str:
-        base = self.n8n_base_url.rstrip("/")
+        base = self.n8n_resolved_api_base_url
         prefix = self.n8n_rest_prefix.strip("/")
         return f"{base}/{prefix}" if prefix else base
