@@ -23,6 +23,35 @@ settings = Settings()
 sync_task: asyncio.Task[Any] | None = None
 
 
+def filter_n8n_groups(all_groups: list[str], allowed_groups: list[str]) -> list[str]:
+    """
+    Keep only LDAP groups configured for n8n (LDAP_GROUPS), case-insensitive.
+    Preserves original group values from LDAP in output.
+    """
+    if not all_groups or not allowed_groups:
+        return []
+
+    def aliases(group_value: str) -> set[str]:
+        normalized = group_value.strip().lower()
+        result = {normalized}
+        if normalized.startswith("cn="):
+            result.add(normalized.split(",", 1)[0].replace("cn=", "", 1).strip())
+        return result
+
+    allowed_aliases: set[str] = set()
+    for group in allowed_groups:
+        if group.strip():
+            allowed_aliases.update(aliases(group))
+
+    filtered: list[str] = []
+
+    for group in all_groups:
+        if aliases(group) & allowed_aliases:
+            filtered.append(group)
+
+    return filtered
+
+
 async def sync_loop() -> None:
     while True:
         try:
@@ -90,6 +119,8 @@ def auth_login(payload: LoginRequest) -> dict[str, str]:
     if not user:
         return {"status": "error", "message": "Invalid credentials"}
 
+    trusted_groups = filter_n8n_groups(user.get("groups", []), settings.ldap_group_list)
+
     now = datetime.now(timezone.utc)
     exp = now + timedelta(seconds=settings.trusted_auth_token_ttl_seconds)
     token_payload = {
@@ -97,7 +128,7 @@ def auth_login(payload: LoginRequest) -> dict[str, str]:
         "email": user["email"],
         "firstName": user.get("firstName"),
         "lastName": user.get("lastName"),
-        "groups": user.get("groups", []),
+        "groups": trusted_groups,
         "jti": str(uuid4()),
         "iat": int(now.timestamp()),
         "exp": int(exp.timestamp()),
