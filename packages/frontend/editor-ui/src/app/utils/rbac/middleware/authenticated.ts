@@ -17,7 +17,7 @@ export const authenticatedMiddleware: RouterMiddleware<AuthenticatedPermissionOp
 
 	const valid = isAuthenticated(options);
 	if (!valid) {
-		return next({ name: VIEWS.SIGNIN, query: { redirect } });
+		return next({ name: VIEWS.SSO_LOGIN, query: { redirect } });
 	}
 
 	// If MFA is not enabled, and the instance enforces MFA, redirect to personal settings

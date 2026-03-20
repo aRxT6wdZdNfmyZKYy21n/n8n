@@ -128,13 +128,20 @@ export class AuthController {
 	async trustedLogin(
 		req: AuthlessRequest,
 		res: Response,
-		@Query payload: { token?: string; redirect?: string },
+		@Query('token') token?: string,
+		@Query('redirect') redirect?: string,
 	) {
 		if (!this.isTrustedAuthEnabled()) {
 			throw new ForbiddenError('Trusted auth is not enabled');
 		}
 
-		const token = payload.token;
+		this.logger.debug('Trusted login request received', {
+			originalUrl: req.originalUrl,
+			query: req.query,
+			hasToken: Boolean(token),
+			tokenLength: token?.length ?? 0,
+		});
+
 		if (!token) {
 			throw new BadRequestError('Missing trusted login token');
 		}
@@ -160,8 +167,7 @@ export class AuthController {
 			authenticationMethod: 'ldap',
 		});
 
-		const redirect = payload.redirect ?? '/';
-		res.redirect(redirect);
+		res.redirect(redirect ?? '/');
 	}
 
 	private validateEmailFormat(authMethod: AuthProviderType, emailOrLdapLoginId: string): void {
