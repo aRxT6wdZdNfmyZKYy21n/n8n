@@ -43,11 +43,6 @@ import {
 } from '@/sso.ee/sso-helpers';
 import '../auth/handlers/email.auth-handler';
 
-class TrustedLoginQueryDto {
-	token?: string;
-	redirect?: string;
-}
-
 @RestController()
 export class AuthController {
 	private readonly trustedAuthUsedJtis = new Map<string, number>();
@@ -133,8 +128,14 @@ export class AuthController {
 	async trustedLogin(
 		req: AuthlessRequest,
 		res: Response,
-		@Query payload?: TrustedLoginQueryDto,
 	) {
+		const tokenQuery = req.query?.token;
+		const redirectQuery = req.query?.redirect;
+
+		// Express may represent query params as string|string[]|undefined
+		const token = Array.isArray(tokenQuery) ? tokenQuery[0] : tokenQuery;
+		const redirect = Array.isArray(redirectQuery) ? redirectQuery[0] : redirectQuery;
+
 		if (!this.isTrustedAuthEnabled()) {
 			throw new ForbiddenError('Trusted auth is not enabled');
 		}
