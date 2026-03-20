@@ -129,8 +129,9 @@ export class AuthController {
 		req: AuthlessRequest,
 		res: Response,
 	) {
-		const tokenQuery = req.query?.token;
-		const redirectQuery = req.query?.redirect;
+		const query = req.query as Record<string, string | string[] | undefined>;
+		const tokenQuery = query.token;
+		const redirectQuery = query.redirect;
 
 		// Express may represent query params as string|string[]|undefined
 		const token = Array.isArray(tokenQuery) ? tokenQuery[0] : tokenQuery;
@@ -139,9 +140,6 @@ export class AuthController {
 		if (!this.isTrustedAuthEnabled()) {
 			throw new ForbiddenError('Trusted auth is not enabled');
 		}
-
-		const token = payload?.token;
-		const redirect = payload?.redirect;
 
 		this.logger.debug('Trusted login request received', {
 			originalUrl: req.originalUrl,
