@@ -5,9 +5,16 @@ ARG N8N_VERSION=snapshot
 # package manager or build tools, so we compile in a throwaway builder stage.
 FROM node:${NODE_VERSION}-alpine AS builder
 COPY ./compiled /usr/local/lib/node_modules/n8n
-RUN apk add --no-cache python3 make g++ && \
+#
+# `isolated-vm` иногда падает с `Segmentation fault` при пересборке из исходников
+# в ограниченной Docker/WSL среде. Это чаще всего связано с агрессивным параллелизмом.
+# Устраняем это, принудительно ограничивая число jobs для node-gyp через npm_config_jobs.
+#
+RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
     cd /usr/local/lib/node_modules/n8n && \
-    npm rebuild sqlite3 isolated-vm
+    NPM_CONFIG_JOBS=1 npm rebuild sqlite3 && \
+    NPM_CONFIG_JOBS=1 npm rebuild isolated-vm && \
+    apk del .build-deps
 
 FROM n8nio/base:${NODE_VERSION}
 
