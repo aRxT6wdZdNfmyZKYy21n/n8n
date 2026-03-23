@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRoute } from 'vue-router';
-import { useI18n } from '@n8n/i18n';
 
 const route = useRoute();
-const i18n = useI18n();
 
 const login = ref('');
 const password = ref('');
 const loading = ref(false);
 const error = ref('');
+
+const ruText = {
+	title: 'Вход',
+	loginPlaceholder: 'Логин или email',
+	passwordPlaceholder: 'Пароль',
+	submit: 'Войти',
+	submitLoading: 'Вход...',
+	defaultError: 'Ошибка входа',
+};
 
 async function onSubmit() {
 	error.value = '';
@@ -30,9 +37,9 @@ async function onSubmit() {
 			window.location.href = data.redirectUrl;
 			return;
 		}
-		error.value = data.message ?? i18n.baseText('auth.signin.error');
+		error.value = data.message ?? ruText.defaultError;
 	} catch {
-		error.value = i18n.baseText('auth.signin.error');
+		error.value = ruText.defaultError;
 	} finally {
 		loading.value = false;
 	}
@@ -45,24 +52,24 @@ async function onSubmit() {
 			<div :class="$style.brand">
 				<img src="/static/sbermobile.png" alt="СберМобайл" :class="$style.logo" />
 			</div>
-			<h2 :class="$style.title">{{ i18n.baseText('auth.signin') }}</h2>
+			<h2 :class="$style.title">{{ ruText.title }}</h2>
 			<form :class="$style.form" @submit.prevent="onSubmit">
 				<input
 					v-model="login"
 					type="text"
-					placeholder="Login or email"
+					:placeholder="ruText.loginPlaceholder"
 					autocomplete="username"
 					required
 				/>
 				<input
 					v-model="password"
 					type="password"
-					placeholder="Password"
+					:placeholder="ruText.passwordPlaceholder"
 					autocomplete="current-password"
 					required
 				/>
 				<button type="submit" :disabled="loading">
-					{{ loading ? i18n.baseText('generic.waiting') : i18n.baseText('auth.signin') }}
+					{{ loading ? ruText.submitLoading : ruText.submit }}
 				</button>
 			</form>
 			<p v-if="error" :class="$style.error">{{ error }}</p>
@@ -83,27 +90,30 @@ async function onSubmit() {
 .card {
 	width: 420px;
 	max-width: 100%;
-	padding: var(--spacing--xl);
+	padding: var(--spacing--2xl) var(--spacing--xl);
 	border: 1px solid #ffd6bf;
 	border-radius: var(--radius--lg);
 	background: var(--color--background);
 	box-shadow: 0 10px 30px rgba(247, 112, 24, 0.08);
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing--m);
 }
 
 .brand {
 	display: flex;
 	justify-content: center;
-	margin-bottom: var(--spacing--m);
+	margin-bottom: var(--spacing--s);
 }
 
 .logo {
-	max-width: 210px;
+	max-width: 320px;
 	width: 100%;
 	height: auto;
 }
 
 .title {
-	margin: 0 0 var(--spacing--m) 0;
+	margin: 0;
 	text-align: center;
 }
 
@@ -144,7 +154,7 @@ async function onSubmit() {
 }
 
 .error {
-	margin-top: var(--spacing--s);
+	margin-top: var(--spacing--xs);
 	text-align: center;
 	color: var(--color--danger);
 }
