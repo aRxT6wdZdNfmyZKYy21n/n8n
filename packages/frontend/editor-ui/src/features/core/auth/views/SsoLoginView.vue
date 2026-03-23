@@ -42,8 +42,10 @@ async function onSubmit() {
 <template>
 	<div :class="$style.container">
 		<div :class="$style.card">
+			<div :class="$style.brand">
+				<img src="/static/sbermobile.png" alt="СберМобайл" :class="$style.logo" />
+			</div>
 			<h2 :class="$style.title">{{ i18n.baseText('auth.signin') }}</h2>
-			<p :class="$style.subtitle">Use your corporate account</p>
 			<form :class="$style.form" @submit.prevent="onSubmit">
 				<input
 					v-model="login"
@@ -72,34 +74,78 @@ async function onSubmit() {
 .container {
 	display: flex;
 	justify-content: center;
-	padding-top: var(--spacing--2xl);
+	align-items: center;
+	min-height: 100vh;
+	padding: var(--spacing--2xl) var(--spacing--m);
+	background: linear-gradient(180deg, #fff8f3 0%, #fff 100%);
 }
 
 .card {
 	width: 420px;
-	padding: var(--spacing--lg);
-	border: var(--border);
+	max-width: 100%;
+	padding: var(--spacing--xl);
+	border: 1px solid #ffd6bf;
 	border-radius: var(--radius--lg);
 	background: var(--color--background);
+	box-shadow: 0 10px 30px rgba(247, 112, 24, 0.08);
+}
+
+.brand {
+	display: flex;
+	justify-content: center;
+	margin-bottom: var(--spacing--m);
+}
+
+.logo {
+	max-width: 210px;
+	width: 100%;
+	height: auto;
 }
 
 .title {
-	margin: 0 0 var(--spacing--xs) 0;
-}
-
-.subtitle {
-	margin: 0 0 var(--spacing--sm) 0;
-	color: var(--color--text--tint-1);
+	margin: 0 0 var(--spacing--m) 0;
+	text-align: center;
 }
 
 .form {
 	display: flex;
 	flex-direction: column;
-	gap: var(--spacing--xs);
+	gap: var(--spacing--s);
+}
+
+.form input {
+	border: 1px solid #ffd6bf;
+	border-radius: var(--radius--md);
+	padding: var(--spacing--xs) var(--spacing--s);
+}
+
+.form input:focus {
+	outline: none;
+	border-color: #f77018;
+	box-shadow: 0 0 0 3px rgba(247, 112, 24, 0.16);
+}
+
+.form button {
+	background: #f77018;
+	border: none;
+	color: #fff;
+	border-radius: var(--radius--md);
+	padding: var(--spacing--xs) var(--spacing--s);
+	font-weight: var(--font-weight-bold);
+}
+
+.form button:hover:not(:disabled) {
+	background: #e26511;
+}
+
+.form button:disabled {
+	opacity: 0.7;
+	cursor: not-allowed;
 }
 
 .error {
-	margin-top: var(--spacing--xs);
+	margin-top: var(--spacing--s);
+	text-align: center;
 	color: var(--color--danger);
 }
 </style>
